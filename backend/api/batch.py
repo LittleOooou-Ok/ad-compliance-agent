@@ -161,19 +161,17 @@ def _process_batch_sync(task_id: str):
         content = item[1]
         source_path = item[2] if len(item) > 2 else None
 
+        result = None
         try:
             # 评分
             scoring_result = calculate_risk_score(content)
 
-            # 生成报告（快速模式，不调用 Agent）
-            report = _generate_report(content, scoring_result)
+            # 调用 Agent 生成详细报告
+            report = _generate_detailed_report(content, scoring_result)
 
-            # 构建维度数据（基于评分结果）
-            # 合规性：有敏感词或规则命中 → 不通过
+            # 构建维度数据
             compliance_passed = scoring_result.sensitive_word_score < 10 and scoring_result.rule_match_score < 15
-            # 真实性：语义分析得分低 → 通过
             authenticity_passed = scoring_result.semantic_score < 10
-            # 安全性：无高危敏感词 → 通过
             safety_passed = not any(sw.get("severity") == "high" for sw in scoring_result.sensitive_words_found)
 
             result = {
@@ -185,21 +183,9 @@ def _process_batch_sync(task_id: str):
                 "risk_level": scoring_result.risk_level,
                 "latency_ms": 0,
                 "dimensions": {
-                    "compliance": {
-                        "passed": compliance_passed,
-                        "details": f"敏感词得分: {scoring_result.sensitive_word_score:.1f}, 规则命中: {scoring_result.rule_match_score:.1f}",
-                        "confidence": scoring_result.confidence
-                    },
-                    "authenticity": {
-                        "passed": authenticity_passed,
-                        "details": f"语义分析得分: {scoring_result.semantic_score:.1f}",
-                        "confidence": scoring_result.confidence
-                    },
-                    "safety": {
-                        "passed": safety_passed,
-                        "details": f"发现 {len(scoring_result.sensitive_words_found)} 个敏感词",
-                        "confidence": scoring_result.confidence
-                    }
+                    "compliance": {"passed": compliance_passed, "details": f"敏感词得分: {scoring_result.sensitive_word_score:.1f}, 规则命中: {scoring_result.rule_match_score:.1f}", "confidence": scoring_result.confidence},
+                    "authenticity": {"passed": authenticity_passed, "details": f"语义分析得分: {scoring_result.semantic_score:.1f}", "confidence": scoring_result.confidence},
+                    "safety": {"passed": safety_passed, "details": f"发现 {len(scoring_result.sensitive_words_found)} 个敏感词", "confidence": scoring_result.confidence}
                 },
                 "violations": [{"type": sw.get("category", "敏感词"), "content": sw["word"], "rule_ref": sw.get("rule_ref", ""), "severity": sw["severity"], "suggestion": f"删除'{sw['word']}'"} for sw in scoring_result.sensitive_words_found],
                 "similar_cases": [],
@@ -220,10 +206,10 @@ def _process_batch_sync(task_id: str):
                 "dimensions": {},
                 "violations": [],
                 "similar_cases": [],
-                "report_markdown": "",
+                "report_markdown": f"处理失败: {str(e)[:200]}",
             }
 
-        # 更新状态
+        # 更新状态（无论成功失败都要更新）
         task["completed"] = i + 1
         task["results"].append(result)
 
