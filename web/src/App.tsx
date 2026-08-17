@@ -23,9 +23,11 @@ type TabId = (typeof TABS)[number]['id']
 interface ReviewResult {
   review_id: string
   conclusion: 'pass' | 'reject' | 'manual_review'
-  confidence: number
-  risk_level: 'low' | 'medium' | 'high'
-  dimensions: Record<string, { passed: boolean; details: string; confidence: number }>
+  confidence?: number
+  risk_level: 'low' | 'medium' | 'high' | 'critical'
+  composite_risk_score?: number
+  composite_risk_level?: string
+  dimensions: Record<string, { passed: boolean; details: string; confidence?: number; risk_score?: number; risk_level?: string }>
   violations: { type: string; content: string; rule_ref: string; severity: string; suggestion: string }[]
   similar_cases: { case_id: string; content: string; conclusion: string; similarity: number }[]
   report_markdown: string
@@ -57,10 +59,12 @@ interface BatchStatus {
 interface DetailItem {
   title: string
   conclusion: string
-  confidence: number
+  confidence?: number
   risk_level: string
+  composite_risk_score?: number
+  composite_risk_level?: string
   latency_ms: number
-  dimensions?: Record<string, { passed: boolean; details: string; confidence: number }>
+  dimensions?: Record<string, { passed: boolean; details: string; confidence?: number; risk_score?: number; risk_level?: string }>
   violations?: { type: string; content: string; rule_ref: string; severity: string; suggestion: string }[]
   similar_cases?: { case_id: string; content: string; conclusion: string; similarity: number }[]
   report_markdown?: string
@@ -113,7 +117,9 @@ function DetailModalContent({ item, onClose }: { item: DetailItem; onClose: () =
               <info.icon className="w-5 h-5" />
               <div>
                 <div className="font-semibold text-sm">{info.label}</div>
-                <div className="text-xs opacity-70">置信度 {(item.confidence * 100).toFixed(0)}%</div>
+                <div className="text-xs opacity-70">
+                  综合风险分 {(item.composite_risk_score ?? (item.confidence ? item.confidence * 100 : 0)).toFixed(0)}/100
+                </div>
               </div>
             </div>
             {rm[item.risk_level] && (
@@ -135,12 +141,18 @@ function DetailModalContent({ item, onClose }: { item: DetailItem; onClose: () =
               <div className="space-y-2">
                 {['compliance', 'authenticity', 'safety'].map(k => {
                   const d = item.dimensions![k]; if (!d) return null
+                  const riskScore = d.risk_score ?? 0
                   return (
                     <div key={k} className="bg-gray-50 rounded-lg p-3">
                       <div className="flex items-center gap-2 mb-1">
                         {d.passed ? <CheckCircle2 className="w-4 h-4 text-green-500" /> : <XCircle className="w-4 h-4 text-red-500" />}
                         <span className="text-xs font-medium text-gray-800">{dimLabel[k]}</span>
-                        <span className="text-[10px] text-gray-400 ml-auto">{(d.confidence * 100).toFixed(0)}%</span>
+                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ml-auto ${
+                          riskScore < 20 ? 'bg-green-100 text-green-600' :
+                          riskScore < 40 ? 'bg-yellow-100 text-yellow-600' :
+                          riskScore < 60 ? 'bg-orange-100 text-orange-600' :
+                          'bg-red-100 text-red-600'
+                        }`}>{riskScore.toFixed(0)}/100</span>
                       </div>
                       <p className="text-xs text-gray-600 pl-6">{d.details}</p>
                     </div>
@@ -380,7 +392,9 @@ function ReviewWorkbench({ result, setResult }: { result: ReviewResult | null; s
                 {React.createElement(cm[result.conclusion]?.icon || Shield, { className: 'w-5 h-5' })}
                 <div>
                   <div className="font-semibold text-sm">{cm[result.conclusion]?.label}</div>
-                  <div className="text-[10px] opacity-60">置信度 {(result.confidence * 100).toFixed(0)}%</div>
+                  <div className="text-[10px] opacity-60">
+                    综合风险分 {result.composite_risk_score?.toFixed(0) ?? '—'}/100
+                  </div>
                 </div>
               </div>
               <span className={`px-2.5 py-1 rounded-full text-[10px] font-semibold ${rm[result.risk_level]?.color}`}>{rm[result.risk_level]?.label}</span>
@@ -390,6 +404,8 @@ function ReviewWorkbench({ result, setResult }: { result: ReviewResult | null; s
             <div className="space-y-1.5">
               {['compliance', 'authenticity', 'safety'].map(k => {
                 const d = result.dimensions[k]; if (!d) return null
+                const riskScore = d.risk_score ?? 0
+                const riskLvl = d.risk_level ?? 'low'
                 return (
                   <div key={k} className="flex items-center justify-between bg-white rounded-lg px-3 py-2 border border-gray-100 result-item">
                     <div className="flex items-center gap-2">
@@ -398,7 +414,15 @@ function ReviewWorkbench({ result, setResult }: { result: ReviewResult | null; s
                         : <XCircle className="w-4 h-4 text-red-500" />}
                       <span className="text-xs font-medium text-gray-700">{dimLabel[k]}</span>
                     </div>
-                    <span className="text-[10px] text-gray-400 max-w-[170px] truncate">{d.details}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] text-gray-400 max-w-[130px] truncate">{d.details}</span>
+                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                        riskLvl === 'low' ? 'bg-green-50 text-green-600' :
+                        riskLvl === 'medium' ? 'bg-yellow-50 text-yellow-600' :
+                        riskLvl === 'high' ? 'bg-red-50 text-red-600' :
+                        'bg-red-100 text-red-700'
+                      }`}>{riskScore.toFixed(0)}</span>
+                    </div>
                   </div>
                 )
               })}
