@@ -89,37 +89,58 @@ def calculate_risk_score(content: str) -> ScoringResult:
     # ── 判定结论 ──
     has_high_severity = any(sw.get("severity") == "high" for sw in result.sensitive_words_found)
     has_medium_severity = any(sw.get("severity") == "medium" for sw in result.sensitive_words_found)
+    has_fuzzy_match = any("模糊匹配" in sw.get("category", "") for sw in result.sensitive_words_found)
     sensitive_word_count = len(result.sensitive_words_found)
+
+    # 置信度计算：基于证据强度
+    # 有直接敏感词命中 → 高置信度
+    # 只有模糊匹配 → 低置信度
+    if has_high_severity:
+        evidence_strength = 0.9
+    elif has_medium_severity and not has_fuzzy_match:
+        evidence_strength = 0.8
+    elif has_medium_severity and has_fuzzy_match:
+        evidence_strength = 0.6  # 混合了模糊匹配，置信度降低
+    elif has_fuzzy_match:
+        evidence_strength = 0.4  # 只有模糊匹配，置信度低
+    else:
+        evidence_strength = 0.85  # 无违规，高置信度
 
     # 规则1：有高危敏感词 → 直接拒绝
     if has_high_severity:
         result.conclusion = "reject"
         result.risk_level = "high"
-        result.confidence = min(0.95, 0.85 + result.sensitive_word_score * 0.003)
+        result.confidence = evidence_strength
 
-    # 规则2：有多个中危敏感词 → 拒绝
-    elif sensitive_word_count >= 3 and has_medium_severity:
+    # 规则2：有多个中危敏感词（非模糊匹配）→ 拒绝
+    elif sensitive_word_count >= 3 and has_medium_severity and not has_fuzzy_match:
         result.conclusion = "reject"
         result.risk_level = "high"
-        result.confidence = min(0.90, 0.75 + result.sensitive_word_score * 0.003)
+        result.confidence = evidence_strength
 
     # 规则3：总分 >= 50 → 拒绝
     elif result.total_score >= 50:
         result.conclusion = "reject"
         result.risk_level = "high"
-        result.confidence = min(0.95, 0.75 + (result.total_score - 50) * 0.004)
+        result.confidence = evidence_strength
 
-    # 规则4：总分 >= 25 或有中危词 → 复审
+    # 规则4：只有模糊匹配且分数低 → 通过（模糊匹配不可靠）
+    elif has_fuzzy_match and result.total_score < 15:
+        result.conclusion = "pass"
+        result.risk_level = "low"
+        result.confidence = 0.75  # 模糊匹配误报可能性大，置信度中等
+
+    # 规则5：总分 >= 25 或有中危词 → 复审
     elif result.total_score >= 25 or has_medium_severity:
         result.conclusion = "manual_review"
         result.risk_level = "medium"
-        result.confidence = 0.55 + (result.total_score - 25) * 0.008
+        result.confidence = evidence_strength
 
-    # 规则5：通过
+    # 规则6：通过
     else:
         result.conclusion = "pass"
         result.risk_level = "low"
-        result.confidence = max(0.70, 0.90 - result.total_score * 0.005)
+        result.confidence = 0.90  # 无违规，高置信度
 
     # ── 生成分数说明 ──
     result.score_breakdown = _generate_breakdown(result)
