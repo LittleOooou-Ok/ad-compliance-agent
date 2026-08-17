@@ -1300,7 +1300,7 @@ function StatsWorkbench({ refreshKey }: { refreshKey: number }) {
             {[
               { label: '审核总量', value: stats.total_reviews, unit: '条', icon: FileText, accent: 'border-l-gray-900' },
               { label: '平均耗时', value: (stats.avg_latency_ms / 1000).toFixed(1), unit: 's', icon: BarChart3, accent: 'border-l-blue-500' },
-              { label: '置信度', value: (stats.avg_confidence * 100).toFixed(0), unit: '%', icon: TrendingUp, accent: 'border-l-green-500' },
+              { label: '平均风险分', value: (stats.avg_confidence * 100).toFixed(0), unit: '/100', icon: TrendingUp, accent: 'border-l-green-500' },
               { label: '复审率', value: (stats.manual_review_rate * 100).toFixed(0), unit: '%', icon: Users, accent: 'border-l-yellow-500' },
             ].map(item => {
               const Icon = item.icon
