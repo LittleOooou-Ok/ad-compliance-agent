@@ -258,7 +258,7 @@ def _process_batch_sync(task_id: str):
 
 
 def _generate_detailed_report(content: str, scoring_result) -> str:
-    """调用 Agent 生成详细审核报告"""
+    """调用 Agent 生成详细审核报告（带超时）"""
     try:
         orchestrator = create_orchestrator()
 
@@ -314,14 +314,29 @@ def _generate_detailed_report(content: str, scoring_result) -> str:
 7. 修改建议"""
 
         import asyncio
+
+        async def run_with_timeout():
+            """带超时的 Agent 调用"""
+            try:
+                return await asyncio.wait_for(
+                    Runner.run(orchestrator, prompt),
+                    timeout=30.0  # 30秒超时
+                )
+            except asyncio.TimeoutError:
+                return None
+
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         try:
-            result = loop.run_until_complete(Runner.run(orchestrator, prompt))
+            result = loop.run_until_complete(run_with_timeout())
+
+            if result is None:
+                # 超时，降级为基本报告
+                return _generate_report(content, scoring_result)
+
             output = result.final_output
 
-            # 提取 Markdown 报告（去掉可能的 JSON 块）
-            # 如果输出包含 ```json 块，提取其中的 report_markdown
+            # 提取 Markdown 报告
             if "```json" in output:
                 try:
                     json_start = output.find("```json")
@@ -333,8 +348,6 @@ def _generate_detailed_report(content: str, scoring_result) -> str:
                 except:
                     pass
 
-            # 如果输出是纯 Markdown，直接返回
-            # 去掉开头可能的非报告内容
             if "# " in output:
                 report_start = output.find("# ")
                 return output[report_start:]
