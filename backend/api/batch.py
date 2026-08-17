@@ -166,8 +166,8 @@ def _process_batch_sync(task_id: str):
             # 评分
             scoring_result = calculate_risk_score(content)
 
-            # 调用 Agent 生成详细报告
-            report = _generate_detailed_report(content, scoring_result)
+            # 生成报告（使用评分系统的报告，不调用 Agent 以保证速度）
+            report = _generate_report(content, scoring_result)
 
             # 构建维度数据
             compliance_passed = scoring_result.sensitive_word_score < 10 and scoring_result.rule_match_score < 15
@@ -258,7 +258,7 @@ def _generate_detailed_report(content: str, scoring_result) -> str:
             for rule in scoring_result.rules_matched[:3]:
                 rules_info += f"- {rule.get('title', '未知')}（相似度:{rule.get('similarity', 0):.0%}）\n"
 
-        prompt = f"""请对以下广告素材生成详细的审核报告：
+        prompt = f"""请对以下广告素材生成详细的审核报告（纯Markdown格式，不要输出JSON）：
 
 广告内容：{content}
 
@@ -287,7 +287,7 @@ def _generate_detailed_report(content: str, scoring_result) -> str:
 风险等级: {scoring_result.risk_level}
 置信度: {scoring_result.confidence:.0%}
 
-请基于以上检测结果，生成完整的审核报告（Markdown格式）。报告必须包含：
+请直接输出Markdown格式的审核报告，不要输出JSON。报告包含：
 1. 审核对象
 2. 敏感词检测结果分析
 3. 规则检索结果分析
@@ -301,7 +301,28 @@ def _generate_detailed_report(content: str, scoring_result) -> str:
         asyncio.set_event_loop(loop)
         try:
             result = loop.run_until_complete(Runner.run(orchestrator, prompt))
-            return result.final_output
+            output = result.final_output
+
+            # 提取 Markdown 报告（去掉可能的 JSON 块）
+            # 如果输出包含 ```json 块，提取其中的 report_markdown
+            if "```json" in output:
+                try:
+                    json_start = output.find("```json")
+                    json_end = output.find("```", json_start + 7)
+                    json_str = output[json_start + 7:json_end].strip()
+                    data = json.loads(json_str)
+                    if "report_markdown" in data:
+                        return data["report_markdown"]
+                except:
+                    pass
+
+            # 如果输出是纯 Markdown，直接返回
+            # 去掉开头可能的非报告内容
+            if "# " in output:
+                report_start = output.find("# ")
+                return output[report_start:]
+
+            return output
         finally:
             loop.close()
 
