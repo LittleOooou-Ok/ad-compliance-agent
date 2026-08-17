@@ -991,10 +991,10 @@ function BatchWorkbench({ status, setStatus }: { status: BatchStatus | null; set
                       <span className="text-xs text-gray-700 truncate">{r.file}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      {r.confidence !== undefined && r.confidence > 0 && <span className="text-[10px] text-gray-300">{(r.confidence * 100).toFixed(0)}%</span>}
+                      {r.composite_risk_score !== undefined && r.composite_risk_score > 0 && <span className="text-[10px] text-gray-300">{r.composite_risk_score.toFixed(0)}</span>}
                       <button
                         onClick={() => setDetailItem({
-                          title: r.file, conclusion: r.conclusion, confidence: r.confidence,
+                          title: r.file, conclusion: r.conclusion, composite_risk_score: r.composite_risk_score,
                           risk_level: r.risk_level, latency_ms: r.latency_ms, reason: r.reason,
                           dimensions: r.dimensions, violations: r.violations,
                           similar_cases: r.similar_cases, report_markdown: r.report_markdown,
