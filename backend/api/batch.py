@@ -557,7 +557,7 @@ def _generate_report(content: str, scoring_result) -> str:
 {emoji} **{label}**
 
 - **风险等级**：{scoring_result.risk_level}
-- **置信度**：{scoring_result.confidence:.0%}
+- **综合风险分**：{scoring_result.composite_risk_score:.0f}/100
 - **总风险分**：{scoring_result.total_score:.1f}/100
 
 ## 三、维度分析

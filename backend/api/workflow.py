@@ -387,7 +387,7 @@ def _process_task(task: dict, scoring_fn) -> dict:
 
     return {
         "conclusion": scoring_result.conclusion,
-        "confidence": scoring_result.confidence,
+        "confidence": scoring_result.composite_risk_score / 100,
         "risk_level": scoring_result.risk_level,
         "content": content,
         "report_markdown": report,
@@ -403,7 +403,7 @@ def _generate_report(content: str, scoring_result) -> str:
     report = f"""{emoji} {label}
 
 **风险等级**：{scoring_result.risk_level}
-**置信度**：{scoring_result.confidence:.0%}
+**综合风险分**：{scoring_result.composite_risk_score:.0f}/100
 
 ## 评分详情
 {scoring_result.score_breakdown}
