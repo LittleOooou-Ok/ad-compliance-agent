@@ -47,7 +47,8 @@ class DimensionResult(BaseModel):
     """单维度审核结果"""
     passed: bool = Field(..., description="是否通过")
     details: str = Field(..., description="审核详情说明")
-    confidence: float = Field(..., description="置信度 0-1")
+    risk_score: float = Field(0.0, description="风险分 0-100")
+    risk_level: str = Field("low", description="风险等级 low/medium/high/critical")
 
 
 class SimilarCase(BaseModel):
@@ -62,8 +63,9 @@ class ReviewResult(BaseModel):
     """审核结果"""
     review_id: str = Field(..., description="审核记录ID")
     conclusion: ReviewConclusion = Field(..., description="审核结论")
-    confidence: float = Field(..., description="整体置信度 0-1")
     risk_level: RiskLevel = Field(..., description="风险等级")
+    composite_risk_score: float = Field(0.0, description="综合风险分 0-100")
+    composite_risk_level: str = Field("low", description="综合风险等级")
     dimensions: dict[str, DimensionResult] = Field(..., description="各维度审核结果")
     violations: list[Violation] = Field(default_factory=list, description="违规点列表")
     similar_cases: list[SimilarCase] = Field(default_factory=list, description="相似案例")

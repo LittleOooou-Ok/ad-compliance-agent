@@ -211,7 +211,6 @@ def _parse_agent_output(review_id: str, output: str, latency_ms: int) -> ReviewR
     # 提取结论
     conclusion_str = data.get("conclusion", "manual_review")
     if conclusion_str not in ("pass", "reject", "manual_review"):
-        # 从文本推断
         output_lower = output.lower()
         if "reject" in output_lower or "拒绝" in output_lower:
             conclusion_str = "reject"
@@ -220,23 +219,6 @@ def _parse_agent_output(review_id: str, output: str, latency_ms: int) -> ReviewR
         else:
             conclusion_str = "manual_review"
 
-    # 提取并验证置信度
-    confidence = data.get("confidence", 0.65)
-    if isinstance(confidence, str):
-        try:
-            confidence = float(confidence.replace("%", ""))
-            if confidence > 1:
-                confidence = confidence / 100
-        except:
-            confidence = 0.65
-    confidence = max(0.40, min(0.95, float(confidence)))
-
-    # 强制执行置信度规则
-    if conclusion_str == "reject" and confidence < 0.75:
-        conclusion_str = "manual_review"  # 置信度不足，改为复审
-    elif conclusion_str == "pass" and confidence < 0.60:
-        conclusion_str = "manual_review"  # 置信度不足，改为复审
-
     try:
         conclusion = ReviewConclusion(conclusion_str)
     except ValueError:
@@ -244,21 +226,16 @@ def _parse_agent_output(review_id: str, output: str, latency_ms: int) -> ReviewR
 
     # 提取风险等级
     risk_str = data.get("risk_level", "medium")
-    if risk_str not in ("low", "medium", "high"):
+    if risk_str not in ("low", "medium", "high", "critical"):
         risk_str = "medium"
-
-    # 根据结论调整风险等级
-    if conclusion_str == "pass":
-        risk_str = "low"
-    elif conclusion_str == "reject":
-        risk_str = "high"
-    elif conclusion_str == "manual_review":
-        risk_str = "medium"
-
     try:
         risk_level = RiskLevel(risk_str)
     except ValueError:
         risk_level = RiskLevel.MEDIUM
+
+    # 提取综合风险分
+    composite_risk_score = float(data.get("composite_risk_score", 50))
+    composite_risk_level = data.get("composite_risk_level", "medium")
 
     # 提取维度结果（保证三个维度都存在）
     default_dims = {"compliance", "authenticity", "safety"}
@@ -267,12 +244,11 @@ def _parse_agent_output(review_id: str, output: str, latency_ms: int) -> ReviewR
     for dim_name in default_dims:
         dim_data = dims_data.get(dim_name, {})
         if isinstance(dim_data, dict):
-            dim_confidence = dim_data.get("confidence", confidence)
-            dim_confidence = max(0.40, min(0.95, float(dim_confidence)))
             dimensions[dim_name] = DimensionResult(
                 passed=dim_data.get("passed", False),
                 details=dim_data.get("details", "待审核"),
-                confidence=dim_confidence
+                risk_score=float(dim_data.get("risk_score", 50)),
+                risk_level=str(dim_data.get("risk_level", "medium"))
             )
         else:
             dimensions[dim_name] = DimensionResult(
@@ -305,19 +281,19 @@ def _parse_agent_output(review_id: str, output: str, latency_ms: int) -> ReviewR
     # 构建报告
     report_markdown = data.get("report_markdown", "")
     if not report_markdown:
-        # 使用原始输出作为报告
         if output and len(output) > 100:
             report_markdown = output
         else:
             report_markdown = _generate_default_report(
-                conclusion, risk_level, confidence, violations
+                conclusion, risk_level, composite_risk_score, violations
             )
 
     return ReviewResult(
         review_id=review_id,
         conclusion=conclusion,
-        confidence=confidence,
         risk_level=risk_level,
+        composite_risk_score=composite_risk_score,
+        composite_risk_level=composite_risk_level,
         dimensions=dimensions,
         violations=violations,
         similar_cases=similar_cases,

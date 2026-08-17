@@ -220,13 +220,30 @@ def _process_batch_sync(task_id: str):
                 "original_content": content,
                 "source_path": source_path,
                 "conclusion": scoring_result.conclusion,
-                "confidence": scoring_result.confidence,
+                "confidence": scoring_result.composite_risk_score / 100,  # 兼容旧接口
                 "risk_level": scoring_result.risk_level,
+                "composite_risk_score": scoring_result.composite_risk_score,
+                "composite_risk_level": scoring_result.composite_risk_level,
                 "latency_ms": latency,
                 "dimensions": {
-                    "compliance": {"passed": compliance_passed, "details": f"敏感词得分: {scoring_result.sensitive_word_score:.1f}, 规则命中: {scoring_result.rule_match_score:.1f}", "confidence": scoring_result.confidence},
-                    "authenticity": {"passed": authenticity_passed, "details": f"语义分析得分: {scoring_result.semantic_score:.1f}", "confidence": scoring_result.confidence},
-                    "safety": {"passed": safety_passed, "details": f"发现 {len(scoring_result.sensitive_words_found)} 个敏感词", "confidence": scoring_result.confidence}
+                    "compliance": {
+                        "passed": compliance_passed,
+                        "details": f"合规性风险分: {scoring_result.compliance_risk_score:.0f}/100",
+                        "risk_score": scoring_result.compliance_risk_score,
+                        "risk_level": scoring_result.compliance_risk_level
+                    },
+                    "authenticity": {
+                        "passed": authenticity_passed,
+                        "details": f"真实性风险分: {scoring_result.authenticity_risk_score:.0f}/100",
+                        "risk_score": scoring_result.authenticity_risk_score,
+                        "risk_level": scoring_result.authenticity_risk_level
+                    },
+                    "safety": {
+                        "passed": safety_passed,
+                        "details": f"安全性风险分: {scoring_result.safety_risk_score:.0f}/100",
+                        "risk_score": scoring_result.safety_risk_score,
+                        "risk_level": scoring_result.safety_risk_level
+                    }
                 },
                 "violations": [{"type": sw.get("category", "敏感词"), "content": sw["word"], "rule_ref": sw.get("rule_ref", ""), "severity": sw["severity"], "suggestion": f"删除'{sw['word']}'"} for sw in scoring_result.sensitive_words_found],
                 "similar_cases": [],
@@ -403,7 +420,7 @@ def _generate_detailed_report(content: str, scoring_result) -> str:
 #### 1. 审核对象
 - 广告内容
 - 核心营销主张（1-3条）
-- 识别出的风险类型（绝对化/功效/真实性/价格/安全）
+- 识别出的风险类型
 
 #### 2. 审核摘要
 表格形式：合规性/真实性/安全性 的结果、风险等级、主要依据
@@ -418,24 +435,57 @@ def _generate_detailed_report(content: str, scoring_result) -> str:
 #### 5. 相似案例参考分析
 - 表格：案例、相似点、关键差异、参考价值、是否影响最终结论
 
-#### 6. 三个维度详细分析
-- 6.1 合规性分析：广告具体表达 → 对应规则 → 规则适用条件 → 是否满足违规条件 → 判断结果
-- 6.2 真实性分析：是否存在可验证的事实主张、夸大功效、无法证实的承诺
-- 6.3 安全性分析：是否涉及敏感违法内容、危险行为诱导
+#### 6. 三个维度详细分析 + 风险评分
 
-#### 7. 违规项与风险项汇总
+对每个维度进行详细分析并给出风险评分（0-100分）：
+
+##### 6.1 合规性分析
+- 广告具体表达 → 对应规则 → 规则适用条件 → 是否满足违规条件 → 判断结果
+- **合规性风险分**：XX / 100
+- **风险等级**：low / medium / high / critical
+- **评分理由**：说明广告具体表达、适用规则以及违规风险
+
+##### 6.2 真实性分析
+- 是否存在可验证的事实主张、夸大功效、无法证实的承诺
+- **真实性风险分**：XX / 100
+- **风险等级**：low / medium / high / critical
+- **评分理由**：说明是否存在虚假宣传、夸大宣传、无法验证的重要事实主张
+- **注意**：无法验证不等于虚假
+
+##### 6.3 安全性分析
+- 是否涉及敏感违法内容、危险行为诱导
+- **安全性风险分**：XX / 100
+- **风险等级**：low / medium / high / critical
+- **评分理由**：说明广告是否存在产品安全风险、敏感违法内容、危险行为诱导
+
+#### 7. 综合风险评分
+
+按照以下公式计算：
+**综合风险分 = 合规性风险 × 50% + 真实性风险 × 30% + 安全性风险 × 20%**
+
+输出：
+- **综合风险指数**：XX / 100
+- **综合风险等级**：
+  - 0-29：low
+  - 30-59：medium
+  - 60-79：high
+  - 80-100：critical
+
+#### 8. 违规项与风险项汇总
 表格：编号、类型、广告具体表达、风险等级、规则依据、证据状态、判断
 
-#### 8. 证据链完整性检查
-- 已确认的证据
-- 不确定因素
-- 结论可靠性
-
 #### 9. 最终审核结论
-- 审核结论：pass / reject / manual_review
-- 风险等级：low / medium / high
-- 置信度：XX%
-- 核心理由（2-5条）
+
+最终结论必须综合：综合风险分、三个维度的风险评分、是否存在明确违规证据、是否存在明确适用的审核规则、是否存在需要人工核验的重要事实。
+
+输出：
+- **审核结论**：pass / reject / manual_review
+- **综合风险等级**：low / medium / high / critical
+- **核心裁决依据**（2-4条）：说明为什么通过、拒绝或进入人工审核
+
+**注意**：
+- 综合风险分不能单独决定审核结论
+- 明确违规证据 > 规则适用性 > 维度风险评分 > 综合风险分
 
 #### 10. 修改建议
 - 问题、原表达、建议修改、推荐改写示例
