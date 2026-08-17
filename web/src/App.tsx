@@ -767,7 +767,21 @@ function BatchWorkbench({ status, setStatus }: { status: BatchStatus | null; set
     } catch (e: unknown) { setError(e instanceof Error ? e.message : '处理失败'); setProcessing(false) }
   }
 
-  useEffect(() => { return () => { if (timerRef.current) clearInterval(timerRef.current) } }, [])
+  // 切换到此 tab 时刷新状态
+  useEffect(() => {
+    if (taskId) {
+      fetch(`${API_BASE}/api/batch/${taskId}/status`)
+        .then(r => r.json())
+        .then(data => {
+          setStatus(data)
+          if (data.status === 'completed' || data.status === 'ready') {
+            setProcessing(false)
+          }
+        })
+        .catch(() => {})
+    }
+    return () => { if (timerRef.current) clearInterval(timerRef.current) }
+  }, [taskId])
 
   const cc: Record<string, string> = { pass: 'text-green-600', reject: 'text-red-600', manual_review: 'text-yellow-600', skipped: 'text-gray-400', error: 'text-red-400', processing: 'text-blue-500' }
   const ccBg: Record<string, string> = { pass: 'bg-green-50', reject: 'bg-red-50', manual_review: 'bg-yellow-50', skipped: 'bg-gray-50', error: 'bg-red-50', processing: 'bg-blue-50' }
@@ -888,9 +902,25 @@ function BatchWorkbench({ status, setStatus }: { status: BatchStatus | null; set
             <span className="text-xs font-medium text-gray-700">
               {processing ? '处理进度' : '处理完成'}
             </span>
-            <span className="text-xs font-bold text-gray-900">
-              {status.progress.toFixed(0)}%（{status.completed}/{status.total}）
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-gray-900">
+                {status.progress.toFixed(0)}%（{status.completed}/{status.total}）
+              </span>
+              <button
+                onClick={async () => {
+                  if (taskId) {
+                    const res = await fetch(`${API_BASE}/api/batch/${taskId}/status`)
+                    const data = await res.json()
+                    setStatus(data)
+                    if (data.status === 'completed') setProcessing(false)
+                  }
+                }}
+                className="btn-ghost p-1 text-gray-400 hover:text-black rounded-md"
+                title="刷新状态"
+              >
+                <RefreshCw className="w-3 h-3" />
+              </button>
+            </div>
           </div>
           <div className="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden">
             <div
