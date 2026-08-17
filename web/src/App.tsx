@@ -250,6 +250,30 @@ function ReviewWorkbench({ result, setResult }: { result: ReviewResult | null; s
     reject: { label: '拒绝', color: 'bg-red-100 text-red-700 border-red-200', icon: XCircle },
     manual_review: { label: '人工复审', color: 'bg-yellow-100 text-yellow-700 border-yellow-200', icon: AlertTriangle },
   }
+
+  const downloadReport = (r: ReviewResult) => {
+    const content = [
+      `广告合规审核报告`,
+      `================`,
+      ``,
+      `审核结论: ${r.conclusion}`,
+      `置信度: ${(r.confidence * 100).toFixed(0)}%`,
+      `风险等级: ${r.risk_level}`,
+      `审核耗时: ${r.latency_ms}ms`,
+      ``,
+      `---`,
+      ``,
+      r.report_markdown
+    ].join('\n')
+
+    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `审核报告_${r.review_id.slice(0, 8)}_${new Date().toISOString().slice(0, 10)}.txt`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
   const rm: Record<string, { label: string; color: string }> = {
     low: { label: '低风险', color: 'bg-green-50 text-green-600' },
     medium: { label: '中风险', color: 'bg-yellow-50 text-yellow-600' },
@@ -422,9 +446,14 @@ function ReviewWorkbench({ result, setResult }: { result: ReviewResult | null; s
               <span className="text-[10px] text-gray-300 flex items-center gap-1">
                 <BarChart3 className="w-3 h-3" />耗时 {result.latency_ms}ms
               </span>
-              <button onClick={() => setShowDetail(true)} className="btn-ghost flex items-center gap-1.5 text-xs text-gray-600 hover:text-black px-2.5 py-1.5 rounded-lg">
-                <Eye className="w-3.5 h-3.5" />查看详情
-              </button>
+              <div className="flex items-center gap-1">
+                <button onClick={() => downloadReport(result)} className="btn-ghost flex items-center gap-1.5 text-xs text-gray-600 hover:text-black px-2.5 py-1.5 rounded-lg">
+                  <FileText className="w-3.5 h-3.5" />下载报告
+                </button>
+                <button onClick={() => setShowDetail(true)} className="btn-ghost flex items-center gap-1.5 text-xs text-gray-600 hover:text-black px-2.5 py-1.5 rounded-lg">
+                  <Eye className="w-3.5 h-3.5" />查看详情
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -908,11 +937,55 @@ function BatchWorkbench({ status, setStatus }: { status: BatchStatus | null; set
                       >
                         <Eye className="w-3 h-3" />
                       </button>
+                      <button
+                        onClick={() => {
+                          const content = r.report_markdown || `审核结论: ${r.conclusion}\n置信度: ${(r.confidence * 100).toFixed(0)}%`
+                          const blob = new Blob([content], { type: 'text/plain;charset=utf-8' })
+                          const url = URL.createObjectURL(blob)
+                          const a = document.createElement('a')
+                          a.href = url
+                          a.download = `审核报告_${r.file.replace(/[^a-zA-Z0-9]/g, '_')}.txt`
+                          a.click()
+                          URL.revokeObjectURL(url)
+                        }}
+                        className="btn-ghost p-1.5 text-gray-300 hover:text-black rounded-md"
+                      >
+                        <FileText className="w-3 h-3" />
+                      </button>
                     </div>
                   </div>
                 </div>
               ))}
             </div>
+          )}
+
+          {/* 全部下载按钮 */}
+          {status.results.length > 0 && !processing && (
+            <button
+              onClick={() => {
+                const allContent = status.results.map((r, i) => [
+                  `=== ${i + 1}. ${r.file} ===`,
+                  `结论: ${r.conclusion}`,
+                  `置信度: ${(r.confidence * 100).toFixed(0)}%`,
+                  ``,
+                  r.report_markdown || '无详细报告',
+                  ``,
+                  `---`,
+                  ``
+                ].join('\n')).join('\n')
+
+                const blob = new Blob([allContent], { type: 'text/plain;charset=utf-8' })
+                const url = URL.createObjectURL(blob)
+                const a = document.createElement('a')
+                a.href = url
+                a.download = `批量审核报告_${new Date().toISOString().slice(0, 10)}.txt`
+                a.click()
+                URL.revokeObjectURL(url)
+              }}
+              className="w-full btn-ghost bg-gray-50 border border-gray-100 text-xs text-gray-600 hover:text-black py-2 rounded-xl flex items-center justify-center gap-1.5"
+            >
+              <FileText className="w-3.5 h-3.5" />下载全部报告
+            </button>
           )}
         </div>
       )}
@@ -1358,6 +1431,19 @@ function SettingsPanel({ settings, onSave, onClose }: { settings: AppSettings; o
           <div>
             <h4 className="text-xs font-semibold text-gray-700 mb-3">结果保存文件夹</h4>
             <p className="text-[10px] text-gray-400 mb-3">设置后审核结果将自动保存到对应文件夹，不设置则不保存</p>
+
+            {/* 本地部署提示 */}
+            <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-xl text-xs text-yellow-800 flex items-start gap-2 mb-3">
+              <AlertTriangle className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
+              <div>
+                <span className="font-semibold">需要本地部署</span>：自动保存功能需要后端运行在本地。
+                <br />
+                <span className="text-[10px] text-yellow-600 mt-1 block">
+                  远程部署请使用审核结果中的「下载报告」功能。
+                </span>
+              </div>
+            </div>
+
             <div className="space-y-3">
               <div>
                 <label className="flex items-center gap-1.5 text-xs text-gray-600 mb-1">
