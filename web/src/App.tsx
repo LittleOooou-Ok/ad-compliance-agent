@@ -781,18 +781,23 @@ function BatchWorkbench({ status, setStatus }: { status: BatchStatus | null; set
     try {
       const res = await fetch(`${API_BASE}/api/batch/${taskId}/start`, { method: 'POST' })
       if (!res.ok) { const e = await res.json(); throw new Error(e.detail || '启动失败') }
-      timerRef.current = setInterval(async () => {
+      // 递归轮询，确保每次请求完成后再安排下一次
+      const poll = async () => {
         try {
           const res = await fetch(`${API_BASE}/api/batch/${taskId}/status`)
           const data: BatchStatus = await res.json()
           setStatus(data)
-          // 完成或进度到达100%时停止轮询
           if (data.status === 'completed' || data.progress >= 100) {
             setProcessing(false)
-            if (timerRef.current) clearInterval(timerRef.current)
+            return // 停止轮询
           }
-        } catch { /* 忽略 */ }
-      }, 2000)
+        } catch (e) {
+          console.error('轮询错误:', e)
+        }
+        // 2秒后继续轮询
+        timerRef.current = setTimeout(poll, 2000) as unknown as ReturnType<typeof setInterval>
+      }
+      poll()
     } catch (e: unknown) { setError(e instanceof Error ? e.message : '处理失败'); setProcessing(false) }
   }
 
