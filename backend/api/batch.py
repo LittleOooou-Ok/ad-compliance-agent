@@ -354,12 +354,11 @@ def _generate_detailed_report(content: str, scoring_result) -> str:
             result = loop.run_until_complete(run_with_timeout())
 
             if result is None:
-                # 超时，降级为基本报告
                 return _generate_report(content, scoring_result)
 
             output = result.final_output
 
-            # 提取 Markdown 报告
+            # 直接返回 Agent 输出（去掉可能的 JSON 块）
             if "```json" in output:
                 try:
                     json_start = output.find("```json")
@@ -371,11 +370,8 @@ def _generate_detailed_report(content: str, scoring_result) -> str:
                 except:
                     pass
 
-            if "# " in output:
-                report_start = output.find("# ")
-                return output[report_start:]
-
-            return output
+            # 直接返回完整输出
+            return output if len(output) > 100 else _generate_report(content, scoring_result)
         finally:
             loop.close()
 

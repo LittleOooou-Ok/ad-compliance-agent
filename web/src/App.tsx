@@ -757,8 +757,16 @@ function BatchWorkbench({ status, setStatus }: { status: BatchStatus | null; set
         try {
           const res = await fetch(`${API_BASE}/api/batch/${taskId}/status`)
           const data: BatchStatus = await res.json()
-          setStatus(data)
+          // 把 processing 状态的结果过滤掉，只显示已完成的
+          const cleanResults = data.results.map((r: BatchResult) =>
+            r.conclusion === 'processing' ? { ...r, conclusion: 'manual_review', report_markdown: '处理中...' } : r
+          )
+          setStatus({ ...data, results: cleanResults })
           if (data.status === 'completed') {
+            // 最终刷新一次，确保所有结果都更新
+            const finalRes = await fetch(`${API_BASE}/api/batch/${taskId}/status`)
+            const finalData = await finalRes.json()
+            setStatus(finalData)
             setProcessing(false)
             if (timerRef.current) clearInterval(timerRef.current)
           }

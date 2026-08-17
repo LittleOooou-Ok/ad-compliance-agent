@@ -106,41 +106,41 @@ def calculate_risk_score(content: str) -> ScoringResult:
     else:
         evidence_strength = 0.85  # 无违规，高置信度
 
-    # 规则1：有高危敏感词 → 直接拒绝
+    # 规则1：有高危敏感词 → 拒绝，但置信度中等（需要Agent验证）
     if has_high_severity:
         result.conclusion = "reject"
         result.risk_level = "high"
-        result.confidence = evidence_strength
+        result.confidence = 0.70  # 有违规证据但需Agent确认
 
     # 规则2：有多个中危敏感词（非模糊匹配）→ 拒绝
     elif sensitive_word_count >= 3 and has_medium_severity and not has_fuzzy_match:
         result.conclusion = "reject"
         result.risk_level = "high"
-        result.confidence = evidence_strength
+        result.confidence = 0.65
 
     # 规则3：总分 >= 50 → 拒绝
     elif result.total_score >= 50:
         result.conclusion = "reject"
         result.risk_level = "high"
-        result.confidence = evidence_strength
+        result.confidence = 0.60
 
     # 规则4：只有模糊匹配且分数低 → 通过（模糊匹配不可靠）
     elif has_fuzzy_match and result.total_score < 15:
         result.conclusion = "pass"
         result.risk_level = "low"
-        result.confidence = 0.75  # 模糊匹配误报可能性大，置信度中等
+        result.confidence = 0.70
 
     # 规则5：总分 >= 25 或有中危词 → 复审
     elif result.total_score >= 25 or has_medium_severity:
         result.conclusion = "manual_review"
         result.risk_level = "medium"
-        result.confidence = evidence_strength
+        result.confidence = 0.60
 
     # 规则6：通过
     else:
         result.conclusion = "pass"
         result.risk_level = "low"
-        result.confidence = 0.90  # 无违规，高置信度
+        result.confidence = 0.85
 
     # ── 生成分数说明 ──
     result.score_breakdown = _generate_breakdown(result)
