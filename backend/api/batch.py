@@ -146,11 +146,12 @@ async def get_batch_results(task_id: str):
 # ── 核心处理逻辑（同步） ──
 
 def _process_batch_sync(task_id: str):
-    """同步处理批量任务，逐条处理，实时更新状态"""
+    """并发处理批量任务，实时更新状态"""
+    from concurrent.futures import ThreadPoolExecutor, as_completed
     from backend.evaluation.scoring import calculate_risk_score
     import logging
 
-    # 配置日志（输出到文件和控制台）
+    # 配置日志
     log_file = Path(__file__).parent.parent.parent / "data" / "batch_log.txt"
     logging.basicConfig(
         level=logging.INFO,
@@ -165,59 +166,63 @@ def _process_batch_sync(task_id: str):
 
     task = batch_tasks[task_id]
     items = task["items"]
-    logger.info(f"[{task_id}] 开始处理，共 {len(items)} 条")
+    total = len(items)
 
+    # 从设置读取并发数
+    from backend.api.settings import load_settings
+    settings = load_settings()
+    workers = settings.get("concurrent_workers", 2)
+
+    logger.info(f"[{task_id}] 开始处理，共 {total} 条，并发数: {workers}")
+
+    # 初始化占位结果
     for i, item in enumerate(items):
-        # 检查是否暂停
-        if task["status"] != "processing":
-            break
-
-        display_name = item[0]
-        content = item[1]
-        source_path = item[2] if len(item) > 2 else None
-
-        result = None
-        item_start_time = time.time()
-
-        # 先更新进度（显示正在处理）
-        task["completed"] = i + 1
         task["results"].append({
-            "file": display_name,
-            "conclusion": "processing",
+            "file": item[0],
+            "conclusion": "pending",
             "confidence": 0,
             "risk_level": "unknown",
             "latency_ms": 0,
             "dimensions": {},
             "violations": [],
-            "report_markdown": "处理中...",
+            "report_markdown": "等待处理...",
         })
-        logger.info(f"[{task_id}] 开始处理第 {i+1}/{len(items)} 条: {display_name}")
+
+    # 单条处理函数
+    def process_one(index: int, item: tuple) -> dict:
+        display_name = item[0]
+        content = item[1]
+        source_path = item[2] if len(item) > 2 else None
+        item_start = time.time()
+
+        logger.info(f"[{task_id}] 开始处理第 {index+1}/{total} 条: {display_name}")
 
         try:
             # 评分
             scoring_result = calculate_risk_score(content)
-            logger.info(f"[{task_id}] 评分完成: {scoring_result.conclusion}, 分数: {scoring_result.total_score:.1f}")
+            logger.info(f"[{task_id}] [{index+1}] 评分完成: {scoring_result.conclusion}, 分数: {scoring_result.total_score:.1f}")
 
             # 调用 Agent 生成详细报告
-            logger.info(f"[{task_id}] 开始调用 Agent...")
+            logger.info(f"[{task_id}] [{index+1}] 开始调用 Agent...")
             report = _generate_detailed_report(content, scoring_result)
-            logger.info(f"[{task_id}] Agent 调用完成，报告长度: {len(report)}")
+            logger.info(f"[{task_id}] [{index+1}] Agent 完成，报告长度: {len(report)}")
 
             # 构建维度数据
             compliance_passed = scoring_result.sensitive_word_score < 10 and scoring_result.rule_match_score < 15
             authenticity_passed = scoring_result.semantic_score < 10
             safety_passed = not any(sw.get("severity") == "high" for sw in scoring_result.sensitive_words_found)
 
-            item_latency = int((time.time() - item_start_time) * 1000)
+            latency = int((time.time() - item_start) * 1000)
 
             result = {
+                "index": index,
                 "file": display_name,
                 "original_content": content,
                 "source_path": source_path,
                 "conclusion": scoring_result.conclusion,
                 "confidence": scoring_result.confidence,
                 "risk_level": scoring_result.risk_level,
-                "latency_ms": item_latency,
+                "latency_ms": latency,
                 "dimensions": {
                     "compliance": {"passed": compliance_passed, "details": f"敏感词得分: {scoring_result.sensitive_word_score:.1f}, 规则命中: {scoring_result.rule_match_score:.1f}", "confidence": scoring_result.confidence},
                     "authenticity": {"passed": authenticity_passed, "details": f"语义分析得分: {scoring_result.semantic_score:.1f}", "confidence": scoring_result.confidence},
@@ -229,17 +234,21 @@ def _process_batch_sync(task_id: str):
                 "scoring_breakdown": scoring_result.score_breakdown,
             }
 
+            logger.info(f"[{task_id}] [{index+1}] 处理完成: {result['conclusion']}")
+            return result
+
         except Exception as e:
-            item_latency = int((time.time() - item_start_time) * 1000)
-            logger.error(f"[{task_id}] 第 {i+1} 条处理失败: {str(e)[:200]}")
-            result = {
+            latency = int((time.time() - item_start) * 1000)
+            logger.error(f"[{task_id}] [{index+1}] 处理失败: {str(e)[:200]}")
+            return {
+                "index": index,
                 "file": display_name,
                 "original_content": content,
                 "source_path": source_path,
                 "conclusion": "error",
                 "confidence": 0,
                 "risk_level": "unknown",
-                "latency_ms": item_latency,
+                "latency_ms": latency,
                 "reason": str(e)[:200],
                 "dimensions": {},
                 "violations": [],
@@ -247,34 +256,47 @@ def _process_batch_sync(task_id: str):
                 "report_markdown": f"处理失败: {str(e)[:200]}",
             }
 
-        # 用真实结果替换占位结果
-        task["results"][-1] = result
+    # 并发处理
+    with ThreadPoolExecutor(max_workers=workers) as executor:
+        futures = {executor.submit(process_one, i, item): i for i, item in enumerate(items)}
 
-        conclusion = result["conclusion"]
-        if conclusion == "pass":
-            task["passed"] += 1
-        elif conclusion == "reject":
-            task["rejected"] += 1
-        elif conclusion == "manual_review":
-            task["manual_review"] += 1
+        for future in as_completed(futures):
+            if task["status"] != "processing":
+                # 暂停时取消剩余任务
+                for f in futures:
+                    f.cancel()
+                break
 
-        # 保存到文件夹
-        try:
-            from backend.api.settings import save_review_result
-            save_review_result(
-                conclusion=conclusion,
-                file_name=display_name,
-                content=content,
-                report=result.get("report_markdown", ""),
-                source_path=source_path
-            )
-        except:
-            pass
+            result = future.result()
+            index = result["index"]
 
-        logger.info(f"[{task_id}] 第 {i+1} 条处理完成: {result['conclusion']}")
+            # 更新结果
+            task["results"][index] = result
+            task["completed"] += 1
 
-        # 短暂延迟
-        time.sleep(0.1)
+            # 更新统计
+            conclusion = result["conclusion"]
+            if conclusion == "pass":
+                task["passed"] += 1
+            elif conclusion == "reject":
+                task["rejected"] += 1
+            elif conclusion == "manual_review":
+                task["manual_review"] += 1
+
+            # 保存到文件夹
+            try:
+                from backend.api.settings import save_review_result
+                save_review_result(
+                    conclusion=conclusion,
+                    file_name=result["file"],
+                    content=result.get("original_content", ""),
+                    report=result.get("report_markdown", ""),
+                    source_path=result.get("source_path")
+                )
+            except:
+                pass
+
+            logger.info(f"[{task_id}] 进度: {task['completed']}/{total}")
 
     task["status"] = "completed"
     logger.info(f"[{task_id}] 全部处理完成")
