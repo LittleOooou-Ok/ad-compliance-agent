@@ -233,13 +233,6 @@ def _parse_agent_output(review_id: str, output: str, latency_ms: int) -> ReviewR
     except ValueError:
         risk_level = RiskLevel.MEDIUM
 
-    # 提取综合风险分（从维度分计算）
-    compliance_score = float(dims_data.get("compliance", {}).get("risk_score", 50))
-    authenticity_score = float(dims_data.get("authenticity", {}).get("risk_score", 50))
-    safety_score = float(dims_data.get("safety", {}).get("risk_score", 50))
-    composite_risk_score = compliance_score * 0.5 + authenticity_score * 0.3 + safety_score * 0.2
-    composite_risk_level = "low" if composite_risk_score < 30 else "medium" if composite_risk_score < 60 else "high" if composite_risk_score < 80 else "critical"
-
     # 提取维度结果（保证三个维度都存在）
     default_dims = {"compliance", "authenticity", "safety"}
     dimensions = {}
@@ -255,8 +248,15 @@ def _parse_agent_output(review_id: str, output: str, latency_ms: int) -> ReviewR
             )
         else:
             dimensions[dim_name] = DimensionResult(
-                passed=False, details="待审核", confidence=confidence
+                passed=False, details="待审核"
             )
+
+    # 提取综合风险分（从维度分计算）
+    compliance_score = float(dims_data.get("compliance", {}).get("risk_score", 50))
+    authenticity_score = float(dims_data.get("authenticity", {}).get("risk_score", 50))
+    safety_score = float(dims_data.get("safety", {}).get("risk_score", 50))
+    composite_risk_score = compliance_score * 0.5 + authenticity_score * 0.3 + safety_score * 0.2
+    composite_risk_level = "low" if composite_risk_score < 30 else "medium" if composite_risk_score < 60 else "high" if composite_risk_score < 80 else "critical"
 
     # 提取违规点
     violations = []
