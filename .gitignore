@@ -1,0 +1,45 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+*.egg-info/
+dist/
+build/
+
+# Environment
+.env
+.env.local
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Node
+node_modules/
+web/node_modules/
+web/dist/
+
+# Runtime data
+data/chroma_db/
+data/workflows/
+data/settings.json
+data/ad_review.db
+*.db
+
+# Test/Temp files
+scripts/test_*.py
+scripts/demo_*.py
+scripts/check_*.py
+docs/eval_results.json
+docs/project_summary.html
+
+# OS
+.DS_Store
+Thumbs.db

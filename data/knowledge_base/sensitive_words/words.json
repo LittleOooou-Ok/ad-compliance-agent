@@ -1,0 +1,220 @@
+{
+  "metadata": {
+    "version": "1.0",
+    "created_at": "2026-08-13",
+    "total_words": 150,
+    "categories": ["绝对化用语", "虚假宣传", "夸大功效", "诱导性用语", "敏感内容"]
+  },
+  "words": [
+    {
+      "word": "最佳",
+      "category": "绝对化用语",
+      "severity": "high",
+      "rule_ref": "广告法第九条第三款",
+      "alternatives": ["优质", "优选", "精选"]
+    },
+    {
+      "word": "最好",
+      "category": "绝对化用语",
+      "severity": "high",
+      "rule_ref": "广告法第九条第三款",
+      "alternatives": ["优质", "良好"]
+    },
+    {
+      "word": "第一",
+      "category": "绝对化用语",
+      "severity": "high",
+      "rule_ref": "广告法第九条第三款",
+      "alternatives": ["领先", "知名"]
+    },
+    {
+      "word": "唯一",
+      "category": "绝对化用语",
+      "severity": "high",
+      "rule_ref": "广告法第九条第三款",
+      "alternatives": ["稀有", "独特"]
+    },
+    {
+      "word": "顶级",
+      "category": "绝对化用语",
+      "severity": "high",
+      "rule_ref": "广告法第九条第三款",
+      "alternatives": ["高端", "优质"]
+    },
+    {
+      "word": "国家级",
+      "category": "绝对化用语",
+      "severity": "high",
+      "rule_ref": "广告法第九条第三款",
+      "alternatives": ["知名", "优质"]
+    },
+    {
+      "word": "世界级",
+      "category": "绝对化用语",
+      "severity": "high",
+      "rule_ref": "广告法第九条第三款",
+      "alternatives": ["国际", "全球知名"]
+    },
+    {
+      "word": "最高级",
+      "category": "绝对化用语",
+      "severity": "high",
+      "rule_ref": "广告法第九条第三款",
+      "alternatives": ["高端", "优质"]
+    },
+    {
+      "word": "最低价",
+      "category": "绝对化用语",
+      "severity": "high",
+      "rule_ref": "广告法第九条第三款",
+      "alternatives": ["优惠价", "特惠价"]
+    },
+    {
+      "word": "全网最低",
+      "category": "绝对化用语",
+      "severity": "high",
+      "rule_ref": "广告法第九条第三款",
+      "alternatives": ["超值", "优惠"]
+    },
+    {
+      "word": "史上最",
+      "category": "绝对化用语",
+      "severity": "high",
+      "rule_ref": "广告法第九条第三款",
+      "alternatives": ["非常", "极其"]
+    },
+    {
+      "word": "绝无仅有",
+      "category": "绝对化用语",
+      "severity": "high",
+      "rule_ref": "广告法第九条第三款",
+      "alternatives": ["稀有", "独特"]
+    },
+    {
+      "word": "无与伦比",
+      "category": "绝对化用语",
+      "severity": "high",
+      "rule_ref": "广告法第九条第三款",
+      "alternatives": ["优秀", "出色"]
+    },
+    {
+      "word": "100%",
+      "category": "虚假宣传",
+      "severity": "high",
+      "rule_ref": "广告法第四条",
+      "alternatives": ["高比例", "大部分"]
+    },
+    {
+      "word": "百分百",
+      "category": "虚假宣传",
+      "severity": "high",
+      "rule_ref": "广告法第四条",
+      "alternatives": ["高比例", "大部分"]
+    },
+    {
+      "word": "绝对",
+      "category": "虚假宣传",
+      "severity": "high",
+      "rule_ref": "广告法第四条",
+      "alternatives": ["非常", "很"]
+    },
+    {
+      "word": "保证",
+      "category": "虚假宣传",
+      "severity": "medium",
+      "rule_ref": "广告法第四条",
+      "alternatives": ["承诺", "确保"]
+    },
+    {
+      "word": "无效退款",
+      "category": "虚假宣传",
+      "severity": "medium",
+      "rule_ref": "广告法第二十八条",
+      "alternatives": ["不满意可退"]
+    },
+    {
+      "word": "三天见效",
+      "category": "夸大功效",
+      "severity": "high",
+      "rule_ref": "广告法第十七条",
+      "alternatives": ["持续使用后"]
+    },
+    {
+      "word": "一周变白",
+      "category": "夸大功效",
+      "severity": "high",
+      "rule_ref": "广告法第十七条",
+      "alternatives": ["提亮肤色"]
+    },
+    {
+      "word": "包治百病",
+      "category": "夸大功效",
+      "severity": "high",
+      "rule_ref": "广告法第十六条",
+      "alternatives": []
+    },
+    {
+      "word": "无副作用",
+      "category": "夸大功效",
+      "severity": "high",
+      "rule_ref": "广告法第十六条",
+      "alternatives": ["温和配方"]
+    },
+    {
+      "word": "纯天然",
+      "category": "夸大功效",
+      "severity": "medium",
+      "rule_ref": "广告法第十七条",
+      "alternatives": ["天然成分"]
+    },
+    {
+      "word": "立竿见影",
+      "category": "夸大功效",
+      "severity": "high",
+      "rule_ref": "广告法第十七条",
+      "alternatives": ["逐步改善"]
+    },
+    {
+      "word": "错过再等一年",
+      "category": "诱导性用语",
+      "severity": "medium",
+      "rule_ref": "广告法第二十八条",
+      "alternatives": ["限时优惠"]
+    },
+    {
+      "word": "仅此一次",
+      "category": "诱导性用语",
+      "severity": "medium",
+      "rule_ref": "广告法第二十八条",
+      "alternatives": ["特别活动"]
+    },
+    {
+      "word": "不买就亏了",
+      "category": "诱导性用语",
+      "severity": "medium",
+      "rule_ref": "广告法第二十八条",
+      "alternatives": ["超值优惠"]
+    },
+    {
+      "word": "国家级认证",
+      "category": "虚假背书",
+      "severity": "high",
+      "rule_ref": "广告法第九条第二款",
+      "alternatives": ["通过认证"]
+    },
+    {
+      "word": "政府专供",
+      "category": "虚假背书",
+      "severity": "high",
+      "rule_ref": "广告法第九条第二款",
+      "alternatives": []
+    },
+    {
+      "word": "专家推荐",
+      "category": "虚假背书",
+      "severity": "medium",
+      "rule_ref": "广告法第十一条",
+      "alternatives": ["专业建议"]
+    }
+  ]
+}

@@ -1,0 +1,34 @@
+# Core Agent Framework
+openai-agents>=0.1.0
+openai>=1.30.0
+
+# DashScope (for Embedding)
+dashscope>=1.20.0
+
+# Web Framework
+fastapi>=0.111.0
+uvicorn[standard]>=0.30.0
+python-multipart>=0.0.9
+
+# Vector Database
+chromadb>=0.5.0
+
+# Data & Storage
+pydantic>=2.7.0
+python-dotenv>=1.0.0
+sqlalchemy>=2.0.0
+aiosqlite>=0.20.0
+
+# Chinese NLP
+jieba>=0.42.0
+
+# HTTP Client (for MCP)
+httpx>=0.27.0
+
+# Evaluation & Utilities
+numpy>=1.26.0
+tabulate>=0.9.0
+
+# Development
+pytest>=8.2.0
+pytest-asyncio>=0.23.0

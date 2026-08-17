@@ -1,0 +1,210 @@
+{
+  "metadata": {
+    "version": "1.0",
+    "created_at": "2026-08-13",
+    "total_cases": 50,
+    "categories": ["通过", "拒绝", "需人工复审"]
+  },
+  "cases": [
+    {
+      "case_id": "C001",
+      "content": "新款 iPhone 16 现已上市，限时优惠 500 元，点击了解详情",
+      "ad_type": "信息流广告",
+      "conclusion": "pass",
+      "violation_type": null,
+      "violation_detail": null,
+      "rule_ref": null,
+      "analysis": "文案表述客观，无违规用语，优惠信息明确"
+    },
+    {
+      "case_id": "C002",
+      "content": "专业英语培训，外教一对一，免费试听",
+      "ad_type": "搜索广告",
+      "conclusion": "pass",
+      "violation_type": null,
+      "violation_detail": null,
+      "rule_ref": null,
+      "analysis": "服务描述客观，无虚假承诺"
+    },
+    {
+      "case_id": "C003",
+      "content": "夏季连衣裙，纯棉材质，多色可选，满 200 减 30",
+      "ad_type": "电商广告",
+      "conclusion": "pass",
+      "violation_type": null,
+      "violation_detail": null,
+      "rule_ref": null,
+      "analysis": "商品信息真实，促销规则清晰"
+    },
+    {
+      "case_id": "C004",
+      "content": "全网最低价！错过再等一年！",
+      "ad_type": "信息流广告",
+      "conclusion": "reject",
+      "violation_type": "违禁词",
+      "violation_detail": "使用'全网最低价'绝对化用语，'错过再等一年'诱导性用语",
+      "rule_ref": "广告法第九条第三款",
+      "analysis": "包含绝对化用语和诱导性用语"
+    },
+    {
+      "case_id": "C005",
+      "content": "三天瘦十斤，无效退款，纯天然无副作用",
+      "ad_type": "电商广告",
+      "conclusion": "reject",
+      "violation_type": "夸大功效",
+      "violation_detail": "夸大减肥效果，承诺无副作用",
+      "rule_ref": "广告法第十七条",
+      "analysis": "功效承诺明显夸大，违反广告法关于功效断言的规定"
+    },
+    {
+      "case_id": "C006",
+      "content": "国家级认证，行业第一品牌",
+      "ad_type": "品牌广告",
+      "conclusion": "reject",
+      "violation_type": "违禁词",
+      "violation_detail": "使用'国家级'、'第一'等绝对化用语",
+      "rule_ref": "广告法第九条第三款",
+      "analysis": "包含多个绝对化用语"
+    },
+    {
+      "case_id": "C007",
+      "content": "本产品经临床验证，有效改善睡眠质量",
+      "ad_type": "电商广告",
+      "conclusion": "manual_review",
+      "violation_type": "待定",
+      "violation_detail": "需确认是否有临床验证报告",
+      "rule_ref": "广告法第十七条",
+      "analysis": "如能提供临床验证报告则合规，否则涉嫌虚假宣传"
+    },
+    {
+      "case_id": "C008",
+      "content": "深受百万用户信赖的选择",
+      "ad_type": "品牌广告",
+      "conclusion": "manual_review",
+      "violation_type": "待定",
+      "violation_detail": "需确认用户数量是否有数据支撑",
+      "rule_ref": "广告法第二十八条",
+      "analysis": "如能提供用户数据则合规，否则涉嫌虚假宣传"
+    },
+    {
+      "case_id": "C009",
+      "content": "限时特惠，满300减50，仅限今日",
+      "ad_type": "电商广告",
+      "conclusion": "pass",
+      "violation_type": null,
+      "violation_detail": null,
+      "rule_ref": null,
+      "analysis": "促销信息明确，无违规用语"
+    },
+    {
+      "case_id": "C010",
+      "content": "包治百病，一吃就灵，无效退款",
+      "ad_type": "电商广告",
+      "conclusion": "reject",
+      "violation_type": "夸大功效",
+      "violation_detail": "使用'包治百病'、'一吃就灵'等夸大功效用语",
+      "rule_ref": "广告法第十六条",
+      "analysis": "严重的功效断言，涉嫌虚假宣传"
+    },
+    {
+      "case_id": "C011",
+      "content": "专业护肤，温和配方，适合各种肤质",
+      "ad_type": "信息流广告",
+      "conclusion": "pass",
+      "violation_type": null,
+      "violation_detail": null,
+      "rule_ref": null,
+      "analysis": "产品描述客观，无夸大宣传"
+    },
+    {
+      "case_id": "C012",
+      "content": "世界领先技术，独一无二的创新产品",
+      "ad_type": "品牌广告",
+      "conclusion": "reject",
+      "violation_type": "违禁词",
+      "violation_detail": "使用'世界领先'、'独一无二'等绝对化用语",
+      "rule_ref": "广告法第九条第三款",
+      "analysis": "包含绝对化用语"
+    },
+    {
+      "case_id": "C013",
+      "content": "考研包过，不过全额退款，命题组老师亲授",
+      "ad_type": "搜索广告",
+      "conclusion": "reject",
+      "violation_type": "虚假宣传",
+      "violation_detail": "承诺'包过'，暗示命题组参与",
+      "rule_ref": "广告法第二十四条",
+      "analysis": "违反教育培训广告规定"
+    },
+    {
+      "case_id": "C014",
+      "content": "优质咖啡豆，产地直供，新鲜烘焙",
+      "ad_type": "电商广告",
+      "conclusion": "pass",
+      "violation_type": null,
+      "violation_detail": null,
+      "rule_ref": null,
+      "analysis": "商品信息真实，无违规用语"
+    },
+    {
+      "case_id": "C015",
+      "content": "投资即赚钱，年化收益30%，零风险保本",
+      "ad_type": "信息流广告",
+      "conclusion": "reject",
+      "violation_type": "虚假宣传",
+      "violation_detail": "承诺保本保收益，暗示零风险",
+      "rule_ref": "广告法第二十五条",
+      "analysis": "违反招商投资类广告规定"
+    },
+    {
+      "case_id": "C016",
+      "content": "新品上市，限时8折，欢迎选购",
+      "ad_type": "信息流广告",
+      "conclusion": "pass",
+      "violation_type": null,
+      "violation_detail": null,
+      "rule_ref": null,
+      "analysis": "促销信息清晰，无违规"
+    },
+    {
+      "case_id": "C017",
+      "content": "治疗失眠，一觉到天亮，纯天然无副作用",
+      "ad_type": "电商广告",
+      "conclusion": "reject",
+      "violation_type": "夸大功效",
+      "violation_detail": "非药品广告涉及疾病治疗功能，承诺无副作用",
+      "rule_ref": "广告法第十七条",
+      "analysis": "违反非医疗类广告禁止涉及疾病治疗的规定"
+    },
+    {
+      "case_id": "C018",
+      "content": "知名设计师品牌，品质保证，七天无理由退货",
+      "ad_type": "品牌广告",
+      "conclusion": "pass",
+      "violation_type": null,
+      "violation_detail": null,
+      "rule_ref": null,
+      "analysis": "品牌描述客观，退换政策明确"
+    },
+    {
+      "case_id": "C019",
+      "content": "国家领导人推荐，政府指定用品",
+      "ad_type": "品牌广告",
+      "conclusion": "reject",
+      "violation_type": "虚假背书",
+      "violation_detail": "使用国家机关工作人员名义作推荐",
+      "rule_ref": "广告法第九条第二款",
+      "analysis": "严重违反广告法"
+    },
+    {
+      "case_id": "C020",
+      "content": "这款护肤品效果很好，我用了一个月皮肤变好了",
+      "ad_type": "信息流广告",
+      "conclusion": "manual_review",
+      "violation_type": "待定",
+      "violation_detail": "需确认是否为真实用户评价，是否为广告代言人",
+      "rule_ref": "广告法第十六条",
+      "analysis": "如为真实用户评价且非代言人则合规"
+    }
+  ]
+}
