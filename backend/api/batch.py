@@ -307,56 +307,142 @@ def _generate_detailed_report(content: str, scoring_result) -> str:
     try:
         orchestrator = create_orchestrator()
 
-        # 构建提示
+        # 构建敏感词信息
         sensitive_words_info = ""
         if scoring_result.sensitive_words_found:
-            sensitive_words_info = "发现以下敏感词：\n"
             for sw in scoring_result.sensitive_words_found[:5]:
                 sensitive_words_info += f"- {sw['word']}（{sw['severity']}，{sw.get('category', '')}）\n"
+        else:
+            sensitive_words_info = "未检测到敏感词\n"
 
+        # 构建规则信息
         rules_info = ""
         if scoring_result.rules_matched:
-            rules_info = "命中以下规则：\n"
-            for rule in scoring_result.rules_matched[:3]:
+            for rule in scoring_result.rules_matched[:5]:
                 rules_info += f"- {rule.get('title', '未知')}（相似度:{rule.get('similarity', 0):.0%}）\n"
+        else:
+            rules_info = "未命中相关规则\n"
 
-        prompt = f"""请对以下广告素材生成详细的审核报告（纯Markdown格式，不要输出JSON）：
+        # 构建案例信息
+        cases_info = f"拒绝案例: {scoring_result.reject_cases_count} 个, 通过案例: {scoring_result.pass_cases_count} 个"
 
-广告内容：{content}
-
-## 自动检测结果
-
-### 敏感词检测
-{f"发现 {len(scoring_result.sensitive_words_found)} 个敏感词" if scoring_result.sensitive_words_found else "未检测到敏感词"}
-{sensitive_words_info}
-
-### 规则检索
-命中 {len(scoring_result.rules_matched)} 条相关规则
-{rules_info}
-
-### 案例参考
-拒绝案例: {scoring_result.reject_cases_count} 个, 通过案例: {scoring_result.pass_cases_count} 个
-
-### 评分结果
-总风险分: {scoring_result.total_score:.1f}/100
+        # 构建评分信息
+        scores_info = f"""总风险分: {scoring_result.total_score:.1f}/100
 - 敏感词得分: {scoring_result.sensitive_word_score:.1f}/35
 - 规则命中得分: {scoring_result.rule_match_score:.1f}/35
 - 案例参考得分: {scoring_result.case_reference_score:.1f}/10
-- 语义分析得分: {scoring_result.semantic_score:.1f}/20
+- 语义分析得分: {scoring_result.semantic_score:.1f}/20"""
 
-### 初步结论
-结论: {scoring_result.conclusion}
+        # 构建初步判断
+        preliminary = f"""结论: {scoring_result.conclusion}
 风险等级: {scoring_result.risk_level}
-置信度: {scoring_result.confidence:.0%}
+置信度: {scoring_result.confidence:.0%}"""
 
-请直接输出Markdown格式的审核报告，不要输出JSON。报告包含：
-1. 审核对象
-2. 敏感词检测结果分析
-3. 规则检索结果分析
-4. 三个维度详细分析（合规性、真实性、安全性）
-5. 违规项汇总
-6. 审核结论及理由
-7. 修改建议"""
+        prompt = f"""请基于以下广告素材和审核过程中获得的证据，生成一份完整、可解释、证据驱动的广告合规审核报告。
+
+输出必须为纯 Markdown，不要输出 JSON。
+
+---
+
+## 输入信息
+
+### 一、广告素材
+
+广告内容：{content}
+
+### 二、审核结果
+
+#### 1. 敏感词检测结果
+{sensitive_words_info}
+
+#### 2. 规则检索结果
+{rules_info}
+
+#### 3. 相似案例检索结果
+{cases_info}
+
+#### 4. 评分结果
+{scores_info}
+
+#### 5. 初步判断
+{preliminary}
+
+---
+
+## 你的角色
+
+你不是简单复述检测结果。你是本次审核流程的最终证据审查与报告生成模块。
+
+在生成报告前，必须对提供的证据进行一次综合验证：
+- 广告具体表达 → 风险识别 → 规则依据 → 规则是否适用 → 案例是否真正相似 → 最终审核结论
+
+必须防止以下错误：
+- 敏感词命中就直接判违规
+- 规则检索命中就直接判违规
+- 历史案例 reject 就直接判当前广告 reject
+- 无法验证真实性就直接认定虚假
+- 风险分高就直接替代规则判断
+
+---
+
+## 最终裁决原则
+
+1. **广告原文优先**：所有判断必须回到广告原始表达，违规项必须能够定位到广告中的具体文字
+2. **规则适用性优先**：规则检索相关度仅表示语义相关性，不代表已违反该规则
+3. **案例参考原则**：案例只能辅助判断，不得单独决定结论
+4. **真实性判断原则**：无法验证 ≠ 虚假宣传，信息不足时优先 manual_review
+
+---
+
+## 最终报告格式
+
+请严格按照以下结构输出：
+
+### 广告素材合规审核报告
+
+#### 1. 审核对象
+- 广告内容
+- 核心营销主张（1-3条）
+- 识别出的风险类型（绝对化/功效/真实性/价格/安全）
+
+#### 2. 审核摘要
+表格形式：合规性/真实性/安全性 的结果、风险等级、主要依据
+
+#### 3. 敏感词检测结果分析
+- 检测结果
+- 对每个关键敏感词分析：敏感词、广告中的上下文、风险类别、是否构成实际违规、判断理由
+
+#### 4. 规则检索结果分析
+- 对每条规则：规则名称、规则要求、广告对应表达、规则适用性判断、判断结论
+
+#### 5. 相似案例参考分析
+- 表格：案例、相似点、关键差异、参考价值、是否影响最终结论
+
+#### 6. 三个维度详细分析
+- 6.1 合规性分析：广告具体表达 → 对应规则 → 规则适用条件 → 是否满足违规条件 → 判断结果
+- 6.2 真实性分析：是否存在可验证的事实主张、夸大功效、无法证实的承诺
+- 6.3 安全性分析：是否涉及敏感违法内容、危险行为诱导
+
+#### 7. 违规项与风险项汇总
+表格：编号、类型、广告具体表达、风险等级、规则依据、证据状态、判断
+
+#### 8. 证据链完整性检查
+- 已确认的证据
+- 不确定因素
+- 结论可靠性
+
+#### 9. 最终审核结论
+- 审核结论：pass / reject / manual_review
+- 风险等级：low / medium / high
+- 置信度：XX%
+- 核心理由（2-5条）
+
+#### 10. 修改建议
+- 问题、原表达、建议修改、推荐改写示例
+
+---
+
+请直接输出完整的 Markdown 审核报告。"""
 
         import asyncio
 
