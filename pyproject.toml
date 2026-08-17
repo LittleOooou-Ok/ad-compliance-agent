@@ -1,0 +1,8 @@
+[project]
+name = "ad-compliance-agent"
+version = "1.0.0"
+description = "基于 OpenAI Agents SDK + DeepSeek 的智能广告素材合规审核系统"
+requires-python = ">=3.10"
+
+[tool.vercel]
+entrypoint = "backend.main:app"
