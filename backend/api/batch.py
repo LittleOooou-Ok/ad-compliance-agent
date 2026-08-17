@@ -148,9 +148,21 @@ async def get_batch_results(task_id: str):
 def _process_batch_sync(task_id: str):
     """同步处理批量任务，逐条处理，实时更新状态"""
     from backend.evaluation.scoring import calculate_risk_score
+    import logging
+
+    # 配置日志输出到文件，方便排查
+    log_file = Path(__file__).parent.parent.parent / "data" / "batch_log.txt"
+    logging.basicConfig(
+        filename=str(log_file),
+        level=logging.INFO,
+        format='%(asctime)s %(message)s',
+        force=True
+    )
+    logger = logging.getLogger("batch")
 
     task = batch_tasks[task_id]
     items = task["items"]
+    logger.info(f"[{task_id}] 开始处理，共 {len(items)} 条")
 
     for i, item in enumerate(items):
         # 检查是否暂停
@@ -176,13 +188,17 @@ def _process_batch_sync(task_id: str):
             "violations": [],
             "report_markdown": "处理中...",
         })
+        logger.info(f"[{task_id}] 开始处理第 {i+1}/{len(items)} 条: {display_name}")
 
         try:
             # 评分
             scoring_result = calculate_risk_score(content)
+            logger.info(f"[{task_id}] 评分完成: {scoring_result.conclusion}, 分数: {scoring_result.total_score:.1f}")
 
             # 调用 Agent 生成详细报告
+            logger.info(f"[{task_id}] 开始调用 Agent...")
             report = _generate_detailed_report(content, scoring_result)
+            logger.info(f"[{task_id}] Agent 调用完成，报告长度: {len(report)}")
 
             # 构建维度数据
             compliance_passed = scoring_result.sensitive_word_score < 10 and scoring_result.rule_match_score < 15
@@ -212,6 +228,7 @@ def _process_batch_sync(task_id: str):
 
         except Exception as e:
             item_latency = int((time.time() - item_start_time) * 1000)
+            logger.error(f"[{task_id}] 第 {i+1} 条处理失败: {str(e)[:200]}")
             result = {
                 "file": display_name,
                 "original_content": content,
@@ -251,10 +268,13 @@ def _process_batch_sync(task_id: str):
         except:
             pass
 
+        logger.info(f"[{task_id}] 第 {i+1} 条处理完成: {result['conclusion']}")
+
         # 短暂延迟
         time.sleep(0.1)
 
     task["status"] = "completed"
+    logger.info(f"[{task_id}] 全部处理完成")
 
 
 def _generate_detailed_report(content: str, scoring_result) -> str:
