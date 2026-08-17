@@ -162,12 +162,26 @@ def _process_batch_sync(task_id: str):
         source_path = item[2] if len(item) > 2 else None
 
         result = None
+
+        # 先更新进度（显示正在处理）
+        task["completed"] = i + 1
+        task["results"].append({
+            "file": display_name,
+            "conclusion": "processing",
+            "confidence": 0,
+            "risk_level": "unknown",
+            "latency_ms": 0,
+            "dimensions": {},
+            "violations": [],
+            "report_markdown": "处理中...",
+        })
+
         try:
             # 评分
             scoring_result = calculate_risk_score(content)
 
-            # 生成报告（使用评分系统的报告，不调用 Agent 以保证速度）
-            report = _generate_report(content, scoring_result)
+            # 调用 Agent 生成详细报告
+            report = _generate_detailed_report(content, scoring_result)
 
             # 构建维度数据
             compliance_passed = scoring_result.sensitive_word_score < 10 and scoring_result.rule_match_score < 15
@@ -209,9 +223,8 @@ def _process_batch_sync(task_id: str):
                 "report_markdown": f"处理失败: {str(e)[:200]}",
             }
 
-        # 更新状态（无论成功失败都要更新）
-        task["completed"] = i + 1
-        task["results"].append(result)
+        # 用真实结果替换占位结果
+        task["results"][-1] = result
 
         conclusion = result["conclusion"]
         if conclusion == "pass":

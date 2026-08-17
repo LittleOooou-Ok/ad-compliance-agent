@@ -769,9 +769,9 @@ function BatchWorkbench({ status, setStatus }: { status: BatchStatus | null; set
 
   useEffect(() => { return () => { if (timerRef.current) clearInterval(timerRef.current) } }, [])
 
-  const cc: Record<string, string> = { pass: 'text-green-600', reject: 'text-red-600', manual_review: 'text-yellow-600', skipped: 'text-gray-400', error: 'text-red-400' }
-  const ccBg: Record<string, string> = { pass: 'bg-green-50', reject: 'bg-red-50', manual_review: 'bg-yellow-50', skipped: 'bg-gray-50', error: 'bg-red-50' }
-  const conclusionLabel: Record<string, string> = { pass: '通过', reject: '拒绝', manual_review: '复审', skipped: '跳过', error: '错误' }
+  const cc: Record<string, string> = { pass: 'text-green-600', reject: 'text-red-600', manual_review: 'text-yellow-600', skipped: 'text-gray-400', error: 'text-red-400', processing: 'text-blue-500' }
+  const ccBg: Record<string, string> = { pass: 'bg-green-50', reject: 'bg-red-50', manual_review: 'bg-yellow-50', skipped: 'bg-gray-50', error: 'bg-red-50', processing: 'bg-blue-50' }
+  const conclusionLabel: Record<string, string> = { pass: '通过', reject: '拒绝', manual_review: '复审', skipped: '跳过', error: '错误', processing: '处理中' }
 
   const toggleExpand = (i: number) => setExpanded(prev => ({ ...prev, [i]: !prev[i] }))
 
