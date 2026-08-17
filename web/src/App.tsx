@@ -7,7 +7,7 @@ import {
   X, ChevronDown, ChevronUp, Eye, Settings,
 } from 'lucide-react'
 
-const API_BASE = window.location.hostname === 'localhost' ? 'http://localhost:8000' : 'https://ad-compliance-agent.onrender.com'
+const API_BASE = 'https://ad-compliance-agent.onrender.com'
 
 const TABS = [
   { id: 'review', label: '提交审核', icon: Send },
