@@ -162,6 +162,7 @@ def _process_batch_sync(task_id: str):
         source_path = item[2] if len(item) > 2 else None
 
         result = None
+        item_start_time = time.time()
 
         # 先更新进度（显示正在处理）
         task["completed"] = i + 1
@@ -188,6 +189,8 @@ def _process_batch_sync(task_id: str):
             authenticity_passed = scoring_result.semantic_score < 10
             safety_passed = not any(sw.get("severity") == "high" for sw in scoring_result.sensitive_words_found)
 
+            item_latency = int((time.time() - item_start_time) * 1000)
+
             result = {
                 "file": display_name,
                 "original_content": content,
@@ -195,7 +198,7 @@ def _process_batch_sync(task_id: str):
                 "conclusion": scoring_result.conclusion,
                 "confidence": scoring_result.confidence,
                 "risk_level": scoring_result.risk_level,
-                "latency_ms": 0,
+                "latency_ms": item_latency,
                 "dimensions": {
                     "compliance": {"passed": compliance_passed, "details": f"敏感词得分: {scoring_result.sensitive_word_score:.1f}, 规则命中: {scoring_result.rule_match_score:.1f}", "confidence": scoring_result.confidence},
                     "authenticity": {"passed": authenticity_passed, "details": f"语义分析得分: {scoring_result.semantic_score:.1f}", "confidence": scoring_result.confidence},
@@ -208,6 +211,7 @@ def _process_batch_sync(task_id: str):
             }
 
         except Exception as e:
+            item_latency = int((time.time() - item_start_time) * 1000)
             result = {
                 "file": display_name,
                 "original_content": content,
@@ -215,7 +219,7 @@ def _process_batch_sync(task_id: str):
                 "conclusion": "error",
                 "confidence": 0,
                 "risk_level": "unknown",
-                "latency_ms": 0,
+                "latency_ms": item_latency,
                 "reason": str(e)[:200],
                 "dimensions": {},
                 "violations": [],
