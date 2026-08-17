@@ -353,7 +353,7 @@ def _generate_detailed_report(content: str, scoring_result) -> str:
         # 构建初步判断
         preliminary = f"""结论: {scoring_result.conclusion}
 风险等级: {scoring_result.risk_level}
-置信度: {scoring_result.confidence:.0%}"""
+综合风险分: {scoring_result.composite_risk_score:.0f}/100"""
 
         prompt = f"""请基于以下广告素材和审核过程中获得的证据，生成一份完整、可解释、证据驱动的广告合规审核报告。
 
