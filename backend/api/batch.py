@@ -165,8 +165,11 @@ def _process_batch_sync(task_id: str):
             # 评分
             scoring_result = calculate_risk_score(content)
 
-            # 生成报告
-            report = _generate_report(content, scoring_result)
+            # 生成报告（拒绝/复审用 Agent 生成详细报告）
+            if scoring_result.conclusion in ("reject", "manual_review"):
+                report = _generate_detailed_report(content, scoring_result)
+            else:
+                report = _generate_report(content, scoring_result)
 
             # 构建维度数据（基于评分结果）
             # 合规性：有敏感词或规则命中 → 不通过
@@ -252,6 +255,76 @@ def _process_batch_sync(task_id: str):
         time.sleep(0.1)
 
     task["status"] = "completed"
+
+
+def _generate_detailed_report(content: str, scoring_result) -> str:
+    """调用 Agent 生成详细审核报告"""
+    try:
+        orchestrator = create_orchestrator()
+
+        # 构建提示
+        sensitive_words_info = ""
+        if scoring_result.sensitive_words_found:
+            sensitive_words_info = "发现以下敏感词：\n"
+            for sw in scoring_result.sensitive_words_found[:5]:
+                sensitive_words_info += f"- {sw['word']}（{sw['severity']}，{sw.get('category', '')}）\n"
+
+        rules_info = ""
+        if scoring_result.rules_matched:
+            rules_info = "命中以下规则：\n"
+            for rule in scoring_result.rules_matched[:3]:
+                rules_info += f"- {rule.get('title', '未知')}（相似度:{rule.get('similarity', 0):.0%}）\n"
+
+        prompt = f"""请对以下广告素材生成详细的审核报告：
+
+广告内容：{content}
+
+## 自动检测结果
+
+### 敏感词检测
+{f"发现 {len(scoring_result.sensitive_words_found)} 个敏感词" if scoring_result.sensitive_words_found else "未检测到敏感词"}
+{sensitive_words_info}
+
+### 规则检索
+命中 {len(scoring_result.rules_matched)} 条相关规则
+{rules_info}
+
+### 案例参考
+拒绝案例: {scoring_result.reject_cases_count} 个, 通过案例: {scoring_result.pass_cases_count} 个
+
+### 评分结果
+总风险分: {scoring_result.total_score:.1f}/100
+- 敏感词得分: {scoring_result.sensitive_word_score:.1f}/35
+- 规则命中得分: {scoring_result.rule_match_score:.1f}/35
+- 案例参考得分: {scoring_result.case_reference_score:.1f}/10
+- 语义分析得分: {scoring_result.semantic_score:.1f}/20
+
+### 初步结论
+结论: {scoring_result.conclusion}
+风险等级: {scoring_result.risk_level}
+置信度: {scoring_result.confidence:.0%}
+
+请基于以上检测结果，生成完整的审核报告（Markdown格式）。报告必须包含：
+1. 审核对象
+2. 敏感词检测结果分析
+3. 规则检索结果分析
+4. 三个维度详细分析（合规性、真实性、安全性）
+5. 违规项汇总
+6. 审核结论及理由
+7. 修改建议"""
+
+        import asyncio
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        try:
+            result = loop.run_until_complete(Runner.run(orchestrator, prompt))
+            return result.final_output
+        finally:
+            loop.close()
+
+    except Exception as e:
+        # Agent 调用失败，降级为基本报告
+        return _generate_report(content, scoring_result)
 
 
 def _generate_report(content: str, scoring_result) -> str:

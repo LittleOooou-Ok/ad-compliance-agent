@@ -553,6 +553,18 @@ function WorkflowSection() {
         </div>
       </div>
 
+      {/* 本地部署提示 */}
+      <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-xl text-xs text-yellow-800 flex items-start gap-2">
+        <AlertTriangle className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
+        <div>
+          <span className="font-semibold">需要本地部署</span>：此功能需要后端运行在本地才能访问本地文件夹。
+          <br />
+          <span className="text-[10px] text-yellow-600 mt-1 block">
+            远程部署请使用上方的「文件上传」功能代替。
+          </span>
+        </div>
+      </div>
+
       {/* 创建工作流 */}
       <div className="flex gap-2">
         <input
