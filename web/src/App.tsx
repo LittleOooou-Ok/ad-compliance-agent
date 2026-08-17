@@ -492,6 +492,8 @@ function ReviewWorkbench({ result, setResult }: { result: ReviewResult | null; s
             conclusion: result.conclusion,
             confidence: result.confidence,
             risk_level: result.risk_level,
+            composite_risk_score: result.composite_risk_score,
+            composite_risk_level: result.composite_risk_level,
             latency_ms: result.latency_ms,
             dimensions: result.dimensions,
             violations: result.violations,
