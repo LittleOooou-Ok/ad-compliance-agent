@@ -75,14 +75,16 @@ async def health_check():
 
 
 if __name__ == "__main__":
+    import os
+    port = int(os.getenv("PORT", API_PORT))
     print("=" * 50)
     print("广告素材合规审核 Agent")
-    print(f"服务地址: http://{API_HOST}:{API_PORT}")
-    print(f"API 文档: http://{API_HOST}:{API_PORT}/docs")
+    print(f"服务地址: http://{API_HOST}:{port}")
+    print(f"API 文档: http://{API_HOST}:{port}/docs")
     print("=" * 50)
     uvicorn.run(
         "backend.main:app",
         host=API_HOST,
-        port=API_PORT,
-        reload=True
+        port=port,
+        reload=False  # 生产环境禁用 reload
     )

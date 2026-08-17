@@ -51,7 +51,8 @@ DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite+aiosqlite:///{DATA_DIR / 'ad_r
 
 # ─── 服务器配置 ────────────────────────────────────────────
 API_HOST = os.getenv("API_HOST", "0.0.0.0")
-API_PORT = int(os.getenv("API_PORT", "8000"))
+# Railway 使用 PORT 环境变量
+API_PORT = int(os.getenv("PORT", os.getenv("API_PORT", "8000")))
 
 # ─── 评估配置 ────────────────────────────────────────────
 EVAL_TEST_SET_PATH = os.getenv("EVAL_TEST_SET_PATH", str(TEST_SET_DIR / "test_cases.json"))
