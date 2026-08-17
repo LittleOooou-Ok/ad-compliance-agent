@@ -150,13 +150,16 @@ def _process_batch_sync(task_id: str):
     from backend.evaluation.scoring import calculate_risk_score
     import logging
 
-    # 配置日志输出到文件，方便排查
+    # 配置日志（输出到文件和控制台）
     log_file = Path(__file__).parent.parent.parent / "data" / "batch_log.txt"
     logging.basicConfig(
-        filename=str(log_file),
         level=logging.INFO,
         format='%(asctime)s %(message)s',
-        force=True
+        force=True,
+        handlers=[
+            logging.FileHandler(str(log_file), encoding='utf-8'),
+            logging.StreamHandler()
+        ]
     )
     logger = logging.getLogger("batch")
 
