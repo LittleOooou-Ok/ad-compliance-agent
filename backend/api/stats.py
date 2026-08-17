@@ -98,7 +98,7 @@ async def get_stats():
     for r in review_store.values():
         all_results.append({
             "conclusion": r.conclusion.value,
-            "confidence": r.confidence,
+            "confidence": getattr(r, 'confidence', None) or (r.composite_risk_score / 100 if hasattr(r, 'composite_risk_score') else 0.5),
             "risk_level": r.risk_level.value,
             "latency_ms": r.latency_ms or 0,
             "violations": [{"type": v.type if isinstance(v.type, str) else v.type.value} for v in r.violations],
