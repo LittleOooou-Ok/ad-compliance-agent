@@ -165,11 +165,8 @@ def _process_batch_sync(task_id: str):
             # 评分
             scoring_result = calculate_risk_score(content)
 
-            # 生成报告（拒绝/复审用 Agent 生成详细报告）
-            if scoring_result.conclusion in ("reject", "manual_review"):
-                report = _generate_detailed_report(content, scoring_result)
-            else:
-                report = _generate_report(content, scoring_result)
+            # 生成报告（快速模式，不调用 Agent）
+            report = _generate_report(content, scoring_result)
 
             # 构建维度数据（基于评分结果）
             # 合规性：有敏感词或规则命中 → 不通过
@@ -328,28 +325,81 @@ def _generate_detailed_report(content: str, scoring_result) -> str:
 
 
 def _generate_report(content: str, scoring_result) -> str:
-    """生成审核报告"""
+    """生成详细审核报告"""
     emoji = {"pass": "✅", "reject": "❌", "manual_review": "⚠️"}.get(scoring_result.conclusion, "❓")
     label = {"pass": "通过", "reject": "拒绝", "manual_review": "需人工复审"}.get(scoring_result.conclusion, "未知")
 
-    report = f"""{emoji} {label}
+    # 维度判定
+    compliance_passed = scoring_result.sensitive_word_score < 10 and scoring_result.rule_match_score < 15
+    authenticity_passed = scoring_result.semantic_score < 10
+    safety_passed = not any(sw.get("severity") == "high" for sw in scoring_result.sensitive_words_found)
 
-**风险等级**：{scoring_result.risk_level}
-**置信度**：{scoring_result.confidence:.0%}
+    report = f"""# 广告合规审核报告
 
-## 评分详情
-{scoring_result.score_breakdown}
+## 一、审核对象
+**广告内容**：{content[:200]}
+
+## 二、审核结论
+{emoji} **{label}**
+
+- **风险等级**：{scoring_result.risk_level}
+- **置信度**：{scoring_result.confidence:.0%}
+- **总风险分**：{scoring_result.total_score:.1f}/100
+
+## 三、维度分析
+
+### 合规性 {'✅ 通过' if compliance_passed else '❌ 未通过'}
+- 敏感词得分：{scoring_result.sensitive_word_score:.1f}/35
+- 规则命中得分：{scoring_result.rule_match_score:.1f}/35
 """
 
     if scoring_result.sensitive_words_found:
-        report += "\n## 敏感词\n"
-        for sw in scoring_result.sensitive_words_found:
-            report += f"- {sw['word']}（{sw['severity']}）\n"
+        report += "\n**发现的敏感词：**\n"
+        for sw in scoring_result.sensitive_words_found[:5]:
+            report += f"- 「{sw['word']}」（{sw['severity']}，{sw.get('category', '')}）— 依据：{sw.get('rule_ref', '')}\n"
 
     if scoring_result.rules_matched:
-        report += "\n## 命中规则\n"
-        for rule in scoring_result.rules_matched[:5]:
-            report += f"- {rule.get('title', '未知')}（相似度:{rule.get('similarity', 0):.0%}）\n"
+        report += "\n**命中的规则：**\n"
+        for rule in scoring_result.rules_matched[:3]:
+            report += f"- {rule.get('title', '未知')}（相似度：{rule.get('similarity', 0):.0%}）\n"
+
+    report += f"""
+### 真实性 {'✅ 通过' if authenticity_passed else '❌ 未通过'}
+- 语义分析得分：{scoring_result.semantic_score:.1f}/20
+- 判断依据：{'未发现虚假宣传或夸大功效表述' if authenticity_passed else '存在疑似虚假宣传或夸大功效表述'}
+
+### 安全性 {'✅ 通过' if safety_passed else '❌ 未通过'}
+- 敏感词数量：{len(scoring_result.sensitive_words_found)} 个
+- 判断依据：{'无高危敏感词' if safety_passed else '发现高严重程度敏感词'}
+
+## 四、案例参考
+- 拒绝案例：{scoring_result.reject_cases_count} 个
+- 通过案例：{scoring_result.pass_cases_count} 个
+
+## 五、违规项汇总
+"""
+
+    if scoring_result.sensitive_words_found:
+        for sw in scoring_result.sensitive_words_found:
+            report += f"- **{sw.get('category', '敏感词')}**：「{sw['word']}」— {sw.get('rule_ref', '')}\n"
+    else:
+        report += "无违规项\n"
+
+    report += f"""
+## 六、评分详情
+```
+{scoring_result.score_breakdown}
+```
+"""
+
+    if scoring_result.conclusion == "reject":
+        report += """
+## 七、修改建议
+1. 删除所有违禁词和绝对化用语
+2. 确保广告内容真实、可验证
+3. 避免夸大功效或虚假宣传
+4. 参考《广告法》相关条款进行修改
+"""
 
     return report
 

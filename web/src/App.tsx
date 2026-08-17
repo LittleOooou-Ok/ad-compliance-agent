@@ -1278,13 +1278,32 @@ function StatsWorkbench({ refreshKey }: { refreshKey: number }) {
             <div className="space-y-2">
               {Object.entries(stats.violation_distribution).sort(([, a], [, b]) => b - a).map(([key, val]) => {
                 const maxVal = Math.max(...Object.values(stats.violation_distribution), 1)
+                // 找出包含该违规类型的具体案例
+                const relatedItems = recentReviews.filter(r =>
+                  r.violations?.some(v => v.type === key)
+                )
                 return (
-                  <div key={key} className="flex items-center gap-3">
-                    <span className="text-[11px] text-gray-600 w-20 text-right font-medium truncate">{key}</span>
-                    <div className="flex-1 bg-gray-50 rounded-full h-2">
-                      <div className="bg-gray-800 h-2 rounded-full dim-bar" style={{ width: `${(val / maxVal) * 100}%` }} />
+                  <div key={key} className="group">
+                    <div className="flex items-center gap-3 cursor-pointer hover:bg-gray-50 rounded px-1 py-0.5">
+                      <span className="text-[11px] text-gray-600 w-20 text-right font-medium truncate">{key}</span>
+                      <div className="flex-1 bg-gray-50 rounded-full h-2">
+                        <div className="bg-gray-800 h-2 rounded-full dim-bar" style={{ width: `${(val / maxVal) * 100}%` }} />
+                      </div>
+                      <span className="text-[10px] font-bold text-gray-500 w-8 text-right">{val}</span>
                     </div>
-                    <span className="text-[10px] font-bold text-gray-500 w-8 text-right">{val}</span>
+                    {relatedItems.length > 0 && (
+                      <div className="ml-20 mt-1 space-y-0.5 max-h-[80px] overflow-y-auto">
+                        {relatedItems.slice(0, 5).map((item, i) => (
+                          <div key={i} className="text-[10px] text-gray-400 flex items-center gap-1">
+                            <span className="w-1 h-1 rounded-full bg-red-400 flex-shrink-0"></span>
+                            <span className="truncate">{item.title}</span>
+                          </div>
+                        ))}
+                        {relatedItems.length > 5 && (
+                          <div className="text-[10px] text-gray-300">...还有 {relatedItems.length - 5} 条</div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 )
               })}

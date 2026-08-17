@@ -87,26 +87,39 @@ def calculate_risk_score(content: str) -> ScoringResult:
     )
 
     # ── 判定结论 ──
-    # 有高危敏感词直接拒绝
     has_high_severity = any(sw.get("severity") == "high" for sw in result.sensitive_words_found)
+    has_medium_severity = any(sw.get("severity") == "medium" for sw in result.sensitive_words_found)
+    sensitive_word_count = len(result.sensitive_words_found)
 
-    if has_high_severity and result.total_score >= 40:
-        # 有高危敏感词 + 风险分>40 → 直接拒绝
+    # 规则1：有高危敏感词 → 直接拒绝
+    if has_high_severity:
         result.conclusion = "reject"
         result.risk_level = "high"
-        result.confidence = min(0.95, 0.80 + (result.total_score - 40) * 0.003)
-    elif result.total_score >= 55:
+        result.confidence = min(0.95, 0.85 + result.sensitive_word_score * 0.003)
+
+    # 规则2：有多个中危敏感词 → 拒绝
+    elif sensitive_word_count >= 3 and has_medium_severity:
         result.conclusion = "reject"
         result.risk_level = "high"
-        result.confidence = min(0.95, 0.75 + (result.total_score - 55) * 0.005)
-    elif result.total_score >= 30:
+        result.confidence = min(0.90, 0.75 + result.sensitive_word_score * 0.003)
+
+    # 规则3：总分 >= 50 → 拒绝
+    elif result.total_score >= 50:
+        result.conclusion = "reject"
+        result.risk_level = "high"
+        result.confidence = min(0.95, 0.75 + (result.total_score - 50) * 0.004)
+
+    # 规则4：总分 >= 25 或有中危词 → 复审
+    elif result.total_score >= 25 or has_medium_severity:
         result.conclusion = "manual_review"
         result.risk_level = "medium"
-        result.confidence = 0.55 + (result.total_score - 30) * 0.008
+        result.confidence = 0.55 + (result.total_score - 25) * 0.008
+
+    # 规则5：通过
     else:
         result.conclusion = "pass"
         result.risk_level = "low"
-        result.confidence = max(0.65, 0.90 - result.total_score * 0.005)
+        result.confidence = max(0.70, 0.90 - result.total_score * 0.005)
 
     # ── 生成分数说明 ──
     result.score_breakdown = _generate_breakdown(result)
