@@ -43,8 +43,10 @@ interface StatsData {
   dimension_stats: Record<string, { passed: number; total: number; pass_rate: number }>
 }
 interface BatchResult {
-  file: string; conclusion: string; confidence: number; risk_level: string; latency_ms: number; reason?: string
-  dimensions?: Record<string, { passed: boolean; details: string; confidence: number }>
+  file: string; conclusion: string; confidence?: number; risk_level: string; latency_ms: number; reason?: string
+  composite_risk_score?: number
+  composite_risk_level?: string
+  dimensions?: Record<string, { passed: boolean; details: string; confidence?: number; risk_score?: number; risk_level?: string }>
   violations?: { type: string; content: string; rule_ref: string; severity: string; suggestion: string }[]
   similar_cases?: { case_id: string; content: string; conclusion: string; similarity: number }[]
   report_markdown?: string
@@ -269,7 +271,7 @@ function ReviewWorkbench({ result, setResult }: { result: ReviewResult | null; s
       `================`,
       ``,
       `审核结论: ${r.conclusion}`,
-      `置信度: ${(r.confidence * 100).toFixed(0)}%`,
+      `综合风险分: ${r.composite_risk_score?.toFixed(0) ?? '—'}/100`,
       `风险等级: ${r.risk_level}`,
       `审核耗时: ${r.latency_ms}ms`,
       ``,
@@ -987,7 +989,7 @@ function BatchWorkbench({ status, setStatus }: { status: BatchStatus | null; set
                       <span className="text-xs text-gray-700 truncate">{r.file}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      {r.confidence > 0 && <span className="text-[10px] text-gray-300">{(r.confidence * 100).toFixed(0)}%</span>}
+                      {r.confidence !== undefined && r.confidence > 0 && <span className="text-[10px] text-gray-300">{(r.confidence * 100).toFixed(0)}%</span>}
                       <button
                         onClick={() => setDetailItem({
                           title: r.file, conclusion: r.conclusion, confidence: r.confidence,
@@ -1001,7 +1003,7 @@ function BatchWorkbench({ status, setStatus }: { status: BatchStatus | null; set
                       </button>
                       <button
                         onClick={() => {
-                          const content = r.report_markdown || `审核结论: ${r.conclusion}\n置信度: ${(r.confidence * 100).toFixed(0)}%`
+                          const content = r.report_markdown || `审核结论: ${r.conclusion}\n综合风险分: ${r.composite_risk_score?.toFixed(0) ?? '—'}/100`
                           const blob = new Blob([content], { type: 'text/plain;charset=utf-8' })
                           const url = URL.createObjectURL(blob)
                           const a = document.createElement('a')
@@ -1028,7 +1030,7 @@ function BatchWorkbench({ status, setStatus }: { status: BatchStatus | null; set
                 const allContent = status.results.map((r, i) => [
                   `=== ${i + 1}. ${r.file} ===`,
                   `结论: ${r.conclusion}`,
-                  `置信度: ${(r.confidence * 100).toFixed(0)}%`,
+                  `综合风险分: ${r.composite_risk_score?.toFixed(0) ?? '—'}/100`,
                   ``,
                   r.report_markdown || '无详细报告',
                   ``,
