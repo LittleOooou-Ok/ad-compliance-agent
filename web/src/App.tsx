@@ -1693,7 +1693,17 @@ function App() {
           </div>
         </div>
 
-        <div className="mt-24 flex flex-wrap items-center justify-center gap-8 md:gap-12 pb-8">
+        <div className="mt-16 flex justify-center">
+          <button
+            onClick={() => setShowSettings(true)}
+            className="flex items-center gap-2 px-6 py-3 bg-white border border-gray-200 rounded-full shadow-sm hover:shadow-md hover:border-gray-300 transition-all text-sm font-medium text-gray-700"
+          >
+            <Settings className="w-4 h-4" />
+            设置
+          </button>
+        </div>
+
+        <div className="mt-8 flex flex-wrap items-center justify-center gap-8 md:gap-12 pb-8">
           {['OpenAI Agents SDK', 'DeepSeek', 'MiMo', 'DashScope', 'Chroma', 'FastAPI', 'React'].map(name => (
             <div key={name} className="flex items-center gap-2 text-gray-400">
               <div className="w-6 h-6 bg-gray-200 rounded" />
