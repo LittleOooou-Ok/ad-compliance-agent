@@ -1693,17 +1693,7 @@ function App() {
           </div>
         </div>
 
-        <div className="mt-16 flex justify-center">
-          <button
-            onClick={() => setShowSettings(true)}
-            className="flex items-center gap-2 px-6 py-3 bg-white border border-gray-200 rounded-full shadow-sm hover:shadow-md hover:border-gray-300 transition-all text-sm font-medium text-gray-700"
-          >
-            <Settings className="w-4 h-4" />
-            设置
-          </button>
-        </div>
-
-        <div className="mt-8 pb-4 text-center">
+        <div className="mt-16 pb-4 text-center">
           <p className="text-xs text-gray-400">
             ⚠️ 免费实例 15 分钟无请求后休眠，首次请求需要 30-60 秒冷启动，期间页面可能响应较慢
           </p>
