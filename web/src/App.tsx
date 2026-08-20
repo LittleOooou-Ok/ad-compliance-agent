@@ -1693,13 +1693,19 @@ function App() {
           </div>
         </div>
 
-        <div className="mt-24 flex flex-wrap items-center justify-center gap-8 md:gap-12 pb-16">
+        <div className="mt-24 flex flex-wrap items-center justify-center gap-8 md:gap-12 pb-8">
           {['OpenAI Agents SDK', 'DeepSeek', 'MiMo', 'DashScope', 'Chroma', 'FastAPI', 'React'].map(name => (
             <div key={name} className="flex items-center gap-2 text-gray-400">
               <div className="w-6 h-6 bg-gray-200 rounded" />
               <span className="text-sm font-medium tracking-wide">{name}</span>
             </div>
           ))}
+        </div>
+
+        <div className="pb-16 text-center">
+          <p className="text-xs text-gray-400">
+            ⚠️ 免费实例 15 分钟无请求后休眠，首次请求需要 30-60 秒冷启动，期间页面可能响应较慢
+          </p>
         </div>
       </div>
 
